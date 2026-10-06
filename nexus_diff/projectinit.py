@@ -1,9 +1,9 @@
-"""`codemap init` y `codemap sections`: proponer y revisar las secciones de un proyecto.
+"""`nexus init` y `nexus sections`: proponer y revisar las secciones de un proyecto.
 
 La propuesta es determinista: parte de la configuración genérica, añade reglas
 según el stack detectado y crea una sección por cada carpeta de primer nivel cuyo
 código quedaría como "Lógica de aplicación" o "Sin clasificar". La skill
-`codemap-setup` usa después `codemap sections` para que la IA la refine con
+`nexus-setup` usa después `nexus sections` para que la IA la refine con
 nombres del negocio.
 """
 
@@ -118,7 +118,7 @@ def propose(root: Path) -> tuple[dict, list[str]]:
     # Un dominio agrupa todo lo suyo (código, datos, recursos): va antes de las capas genéricas.
     sections[tests_at + len(extra):tests_at + len(extra)] = domain
 
-    config = {"proyecto": {"nombre": root.name, "stack": stack, "generado_por": "codemap init"}, **config}
+    config = {"proyecto": {"nombre": root.name, "stack": stack, "generado_por": "nexus init"}, **config}
     return config, files
 
 

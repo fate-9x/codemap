@@ -8,9 +8,9 @@ from pathlib import Path
 
 from _util import TempRepo
 
-from codemap_core import annotations
-from codemap_core.analyze import analyze
-from codemap_core.cli import compact, main
+from nexus_diff import annotations
+from nexus_diff.analyze import analyze
+from nexus_diff.cli import compact, main
 
 CONFIG = {"excluir": [], "secciones": [{"nombre": "Backend", "rutas": ["**/*.py"]}]}
 BASE = "def uno():\n    return 1\n\n\ndef dos():\n    return 2\n"
@@ -23,7 +23,7 @@ class AnnotationTests(unittest.TestCase):
         self.repo.write("app.py", BASE)
         self.repo.commit()
         self.repo.write("app.py", NEW)
-        self.work = Path(tempfile.mkdtemp(prefix="codemap-ann-"))
+        self.work = Path(tempfile.mkdtemp(prefix="nexus-diff-ann-"))
         self.config = self.work / "config.json"
         self.config.write_text(json.dumps(CONFIG), encoding="utf-8")
         self.store = self.work / "store"
@@ -39,10 +39,10 @@ class AnnotationTests(unittest.TestCase):
                          "--store", str(self.store), *args[1:]])
         return code, out.getvalue()
 
-    def annotate(self, payload: dict) -> tuple[int, str]:
+    def link(self, payload: dict) -> tuple[int, str]:
         path = self.work / "ann.json"
         path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        return self.cli("annotate", str(path))
+        return self.cli("link", str(path))
 
     def state(self) -> dict:
         changeset = analyze(self.repo.root, config_path=self.config)
@@ -55,7 +55,7 @@ class AnnotationTests(unittest.TestCase):
         self.assertEqual(data["totales"]["no_declarados"], 0)
 
     def test_complete_annotation(self):
-        code, out = self.annotate({"tarea": "Multiplicar por diez", "cambios": {
+        code, out = self.link({"tarea": "Multiplicar por diez", "cambios": {
             "app.py::uno": "uno devuelve diez", "app.py::dos": "dos devuelve veinte"}})
         self.assertEqual(code, 0, out)
         data = self.state()
@@ -65,7 +65,7 @@ class AnnotationTests(unittest.TestCase):
                          "uno devuelve diez")
 
     def test_missing_and_unknown_ids(self):
-        code, out = self.annotate({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::fantasma": "y"}})
+        code, out = self.link({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::fantasma": "y"}})
         self.assertEqual(code, 1)
         self.assertIn("app.py::fantasma", out)
         self.assertIn("app.py::dos", out)
@@ -75,19 +75,19 @@ class AnnotationTests(unittest.TestCase):
         self.assertEqual([d["id"] for d in data["declaraciones_sin_respaldo"]], ["app.py::fantasma"])
 
     def test_annotations_merge_across_calls(self):
-        self.annotate({"tarea": "t", "cambios": {"app.py::uno": "x"}})
-        code, _ = self.annotate({"cambios": {"app.py::dos": "y"}})
+        self.link({"tarea": "t", "cambios": {"app.py::uno": "x"}})
+        code, _ = self.link({"cambios": {"app.py::dos": "y"}})
         self.assertEqual(code, 0)
         self.assertEqual(self.state()["tarea"], "t")
 
     def test_editing_code_after_annotating_marks_stale(self):
-        self.annotate({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
+        self.link({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
         self.repo.write("app.py", NEW.replace("return 20", "return 99"))
         states = {c["id"]: c["estado_anotacion"] for c in self.state()["cambios"]}
         self.assertEqual(states, {"app.py::uno": "anotado", "app.py::dos": "desactualizado"})
 
     def test_annotations_belong_to_their_base_commit(self):
-        self.annotate({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
+        self.link({"tarea": "t", "cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
         self.repo.commit("otra base")
         self.repo.write("app.py", NEW + "\n\ndef tres():\n    return 3\n")
         data = self.state()
@@ -95,13 +95,13 @@ class AnnotationTests(unittest.TestCase):
         self.assertTrue(all(c["estado_anotacion"] is None for c in data["cambios"]))
 
     def test_invalid_input(self):
-        code, out = self.annotate({"cambios": {"app.py::uno": ""}})
+        code, out = self.link({"cambios": {"app.py::uno": ""}})
         self.assertEqual(code, 2)
         self.assertIn("vacío", out)
         self.assertEqual(annotations.parse_input('{"cambios": [{"id": "a", "resumen": "b"}]}')["cambios"], {"a": "b"})
 
     def test_inline_options_without_a_file(self):
-        code, out = self.cli("annotate", "--tarea", "Multiplicar por diez", "--autor", "opencode",
+        code, out = self.cli("link", "--tarea", "Multiplicar por diez", "--autor", "opencode",
                              "--cambio", "app.py::uno", "uno devuelve diez",
                              "--cambio", "app.py::dos", "dos devuelve `veinte`")
         self.assertEqual(code, 0, out)
@@ -114,20 +114,20 @@ class AnnotationTests(unittest.TestCase):
     def test_file_and_inline_options_are_exclusive(self):
         path = self.work / "ann.json"
         path.write_text("{}", encoding="utf-8")
-        code, _ = self.cli("annotate", str(path), "--tarea", "t")
+        code, _ = self.cli("link", str(path), "--tarea", "t")
         self.assertEqual(code, 2)
-        code, out = self.cli("annotate")
+        code, out = self.cli("link")
         self.assertEqual(code, 2)
         self.assertIn("--cambio", out)
 
     def test_missing_task_is_reported(self):
-        code, out = self.annotate({"cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
+        code, out = self.link({"cambios": {"app.py::uno": "x", "app.py::dos": "y"}})
         self.assertEqual(code, 1)
         self.assertIn("Falta 'tarea'", out)
 
     def test_clear(self):
-        self.annotate({"tarea": "t", "cambios": {"app.py::uno": "x"}})
-        code, _ = self.cli("annotate", "--clear")
+        self.link({"tarea": "t", "cambios": {"app.py::uno": "x"}})
+        code, _ = self.cli("link", "--clear")
         self.assertEqual(code, 0)
         self.assertIsNone(self.state()["tarea"])
 

@@ -51,8 +51,8 @@ def repo_root(start: Path | str) -> Path:
     return Path(decode(out).strip())
 
 
-def codemap_dir(root: Path) -> Path:
-    """Carpeta de Codemap dentro de `.git` (anotaciones, reporte).
+def nexus_diff_dir(root: Path) -> Path:
+    """Carpeta de Nexus-diff dentro de `.git` (anotaciones, reporte).
 
     Vive en el directorio común de git: no se versiona, no aparece en el árbol de
     trabajo y la comparten todos los worktrees del repositorio.
@@ -60,7 +60,7 @@ def codemap_dir(root: Path) -> Path:
     common = Path(decode(_git(["rev-parse", "--git-common-dir"], root)).strip())
     if not common.is_absolute():
         common = root / common
-    return common.resolve() / "codemap"
+    return common.resolve() / "nexus-diff"
 
 
 def tracked_and_untracked(root: Path) -> list[str]:

@@ -1,7 +1,7 @@
 // Ejecuta el plugin de opencode instalado contra un repo real con un cliente simulado.
 // Uso: node opencode_harness.mjs <plugin.js> <repo> <pasos.json>
 // Pasos: {"op":"message"|"idle","session":"root"|"child"} | {"op":"write","path","text"}
-//        | {"op":"annotate","json":{...}}
+//        | {"op":"link","json":{...}}
 // Imprime en stdout un JSON con los avisos que el plugin envió a opencode.
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -42,8 +42,8 @@ const client = {
 };
 
 const mod = await import(pathToFileURL(pluginPath).href);
-const hooks = await mod.CodemapPlugin({ client, $: shell, directory: repo });
-const codemap = readFileSync(pluginPath, "utf8").match(/const CODEMAP = "(.*)";/)[1];
+const hooks = await mod.NexusDiffPlugin({ client, $: shell, directory: repo });
+const nexus = readFileSync(pluginPath, "utf8").match(/const NEXUS = "(.*)";/)[1];
 const python = readFileSync(pluginPath, "utf8").match(/const PYTHON = "(.*)";/)[1];
 
 for (const step of steps) {
@@ -55,11 +55,11 @@ for (const step of steps) {
     const target = join(repo, step.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, step.text);
-  } else if (step.op === "annotate") {
-    const file = join(process.env.CODEMAP_STORE, "input.json");
-    mkdirSync(process.env.CODEMAP_STORE, { recursive: true });
+  } else if (step.op === "link") {
+    const file = join(process.env.NEXUS_DIFF_STORE, "input.json");
+    mkdirSync(process.env.NEXUS_DIFF_STORE, { recursive: true });
     writeFileSync(file, JSON.stringify(step.json));
-    spawnSync(python, [codemap, "annotate", "--repo", repo, file], { env: process.env });
+    spawnSync(python, [nexus, "link", "--repo", repo, file], { env: process.env });
   }
 }
 process.stdout.write(JSON.stringify(prompts));

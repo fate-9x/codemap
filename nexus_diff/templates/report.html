@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexus-diff</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d0a0b; --panel: #130f10; --card: #1b1617; --raised: #261f21;
+    --ink: #f1ebeb; --muted: #a79d9e; --faint: #756b6c; --line: #2c2526; --line-2: #3d3334;
+    --red: #ef4444; --red-hot: #ff6262; --red-bg: rgba(239,68,68,.10); --red-line: rgba(239,68,68,.5);
+    --amber: #e7a53a; --amber-bg: rgba(231,165,58,.10); --amber-line: rgba(231,165,58,.45);
+    --ok: #6fbf94; --ok-bg: rgba(111,191,148,.10); --ok-line: rgba(111,191,148,.35);
+    --code-add: rgba(111,191,148,.10); --code-del: rgba(239,68,68,.12);
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, "Segoe UI", Roboto, Arial, sans-serif; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--red-hot); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--raised); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  .small { font-size: 14px; color: var(--muted); }
+
+  /* Cabecera */
+  header.top { border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #1b1112, var(--bg)); }
+  .top-in { max-width: 1560px; margin: 0 auto; padding: 18px 20px; display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  h1 .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--red); box-shadow: 0 0 14px 2px rgba(239,68,68,.6); }
+  #meta { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+  .stats { display: flex; gap: 22px; }
+  .stat { text-align: right; line-height: 1.15; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .stat.hot b { color: var(--red-hot); }
+  .stat.warn b { color: var(--amber); }
+
+  /* Estructura: barra lateral, contenido y comandos */
+  .layout { max-width: 1560px; margin: 0 auto; padding: 22px 20px 60px; display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+  aside.side { grid-row: 1 / span 2; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: grid; gap: 22px; padding-right: 2px; }
+  .side h2 { margin: 0 0 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); font-weight: 700; }
+  input[type=search] { width: 100%; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: 9px; font: inherit; font-size: 14px; background: var(--panel); color: var(--ink); }
+  input[type=search]::placeholder { color: var(--faint); }
+  .seg { display: flex; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 7px 8px; font-size: 14px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--red); color: #fff; font-weight: 600; }
+
+  .progress { display: grid; gap: 6px; }
+  .progress .num { display: flex; justify-content: space-between; font-size: 14px; }
+  .progress .num b { font-variant-numeric: tabular-nums; }
+  .meter { height: 6px; background: var(--raised); border-radius: 999px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--red); border-radius: 999px; transition: width .25s; }
+
+  .navlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .navlist button { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--muted); padding: 8px 10px; border-radius: 0 8px 8px 0; font-size: 14.5px; cursor: pointer; }
+  .navlist button:hover { background: var(--panel); color: var(--ink); }
+  .navlist button[aria-current="true"], .navlist button[aria-pressed="true"] { background: var(--red-bg); border-left-color: var(--red); color: var(--ink); font-weight: 600; }
+  .navlist .lbl { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .navlist .n { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--faint); }
+  .navlist .alert, .navlist .sw { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .alert.nd, .sw.nd { background: var(--red); } .alert.nd { box-shadow: 0 0 8px rgba(239,68,68,.7); }
+  .alert.old, .sw.old { background: var(--amber); }
+  .alert.none { background: var(--line-2); }
+  .sw.ok { background: var(--ok); } .sw.all { background: var(--ink); }
+  .btnrow { display: flex; gap: 8px; }
+  .btn { flex: 1; border: 1px solid var(--line-2); background: var(--panel); border-radius: 8px; padding: 7px 8px; font-size: 13px; cursor: pointer; color: var(--ink); }
+  .btn:hover { border-color: var(--faint); }
+
+  /* Tarea declarada y avisos */
+  .claim { display: grid; grid-template-columns: auto 1fr; gap: 0 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; }
+  .claim .q { font: 700 46px/0.8 Georgia, serif; color: var(--red); opacity: .85; }
+  .claim h2 { margin: 0 0 4px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
+  .claim p { margin: 0; font-size: 17px; }
+  .claim .by { margin-top: 6px; font-size: 13px; color: var(--faint); }
+  .notice { background: var(--panel); border: 1px dashed var(--line-2); border-radius: 14px; padding: 14px 18px; margin-bottom: 24px; color: var(--muted); }
+  .alertbox { background: var(--red-bg); border: 1px solid var(--red-line); border-radius: 14px; padding: 14px 18px; margin-bottom: 24px; }
+  .alertbox h2 { margin: 0 0 6px; font-size: 16px; color: var(--red-hot); }
+  .alertbox ul { margin: 8px 0 0; padding: 0; list-style: none; }
+  .alertbox li { margin: 6px 0; padding-left: 12px; border-left: 2px solid var(--red-line); }
+  .path { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+  #visible { color: var(--muted); font-size: 13.5px; margin: -8px 0 14px; min-height: 1em; }
+
+  /* Secciones */
+  .sec { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--line-2); border-radius: 14px; margin-bottom: 32px; overflow: hidden; }
+  .sec.has-nd { border-top-color: var(--red); }
+  .sec.has-old { border-top-color: var(--amber); }
+  .sec-h { margin: 0; }
+  .sec-h button { width: 100%; display: grid; grid-template-columns: auto 1fr auto auto; gap: 4px 16px; align-items: center; text-align: left; border: 0; background: var(--raised); padding: 16px 20px; cursor: pointer; }
+  .sec-h .idx { grid-row: span 2; font: 700 28px/1 var(--mono); color: var(--faint); }
+  .sec.has-nd .idx { color: var(--red); }
+  .sec-h .title { font-size: 21px; font-weight: 700; letter-spacing: .1px; overflow-wrap: anywhere; }
+  .sec-h .desc { grid-column: 2; font-size: 14px; color: var(--muted); font-weight: 400; }
+  .sec-h .meta { grid-column: 3; grid-row: 1 / span 2; display: grid; gap: 6px; justify-items: end; }
+  .sec-h .caret { grid-column: 4; grid-row: 1 / span 2; color: var(--muted); transition: transform .15s; font-size: 18px; }
+  .sec-h button[aria-expanded="false"] .caret { transform: rotate(-90deg); }
+  .sec-h button:hover .title { color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; font-size: 12.5px; }
+  .chip { border-radius: 999px; padding: 1px 10px; font-weight: 650; white-space: nowrap; }
+  .chip.count { background: var(--card); color: var(--muted); border: 1px solid var(--line-2); }
+  .chip.nd { background: var(--red); color: #fff; }
+  .chip.old { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-line); }
+  .secbar { display: flex; width: 150px; height: 5px; gap: 2px; border-radius: 999px; overflow: hidden; background: var(--card); }
+  .secbar i { display: block; } .secbar .nd { background: var(--red); } .secbar .old { background: var(--amber); } .secbar .ok { background: #435048; }
+  .sec-body { padding: 14px; }
+  .changes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+  /* Tarjeta de cambio */
+  .chg { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .chg::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--line-2); }
+  .chg.anotado::before { background: #435048; }
+  .chg.no_declarado { border-color: var(--red-line); } .chg.no_declarado::before { background: var(--red); }
+  .chg.desactualizado { border-color: var(--amber-line); } .chg.desactualizado::before { background: var(--amber); }
+  .chg.done .main { opacity: .5; }
+  .chg.flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: #3a1d1f; } to { background: var(--card); } }
+  .main { padding: 14px 18px 4px 22px; }
+  .line1 { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .badge { font-size: 11.5px; font-weight: 700; border-radius: 5px; padding: 2px 8px; text-transform: uppercase; letter-spacing: .6px; }
+  .t-añadido { background: var(--ok-bg); color: var(--ok); }
+  .t-modificado { background: #2d2528; color: #cdc2c3; }
+  .t-eliminado { background: var(--red-bg); color: var(--red-hot); }
+  .t-movido { background: #251f33; color: #b6a6e8; }
+  .status { margin-left: auto; font-size: 12.5px; font-weight: 650; border-radius: 999px; padding: 2px 11px; white-space: nowrap; }
+  .status.nd { background: var(--red); color: #fff; }
+  .status.old { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-line); }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .headline { margin: 0; font-size: 17.5px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+  .headline code { font-weight: 500; }
+  .headline.tech { font-family: var(--mono); font-size: 14px; word-break: break-word; font-weight: 500; }
+  .where { margin: 6px 0 0; font-family: var(--mono); font-size: 13px; color: var(--muted); word-break: break-all; }
+  .where b { color: var(--ink); font-weight: 600; }
+
+  .verify { margin: 12px 0 0; padding: 9px 12px; border-radius: 8px; font-size: 14.5px; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+  .verify .ico { grid-row: span 2; font-size: 15px; line-height: 1.5; }
+  .verify strong { font-size: 13px; letter-spacing: .1px; }
+  .verify p { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+  .verify.nd { background: var(--red-bg); border: 1px solid var(--red-line); } .verify.nd .ico, .verify.nd strong { color: var(--red-hot); }
+  .verify.old { background: var(--amber-bg); border: 1px solid var(--amber-line); } .verify.old .ico, .verify.old strong { color: var(--amber); }
+  .verify.ok { background: transparent; border: 1px dashed var(--ok-line); } .verify.ok .ico, .verify.ok strong { color: var(--ok); }
+  .verify.ok p { color: var(--muted); }
+
+  .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px 13px 22px; }
+  .tag { border-radius: 5px; padding: 1px 9px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line-2); color: var(--muted); }
+  .tag.r2 { border-color: var(--amber-line); color: var(--amber); background: var(--amber-bg); }
+  .tag.r3 { border-color: var(--red-line); color: var(--red-hot); background: var(--red-bg); }
+  .tag.r3::before { content: "▲ "; font-size: 10px; }
+  .spacer { flex: 1; }
+  .link { border: 0; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 3px 7px; border-radius: 6px; }
+  .link:hover { color: var(--ink); background: var(--raised); }
+  .link.code-toggle { color: var(--red-hot); font-weight: 650; }
+  .link.prompt { color: var(--ink); border: 1px solid var(--line-2); font-weight: 600; }
+  .link.prompt:hover { border-color: var(--red); background: var(--red-bg); }
+  .link.prompt::before { content: "✦ "; color: var(--red-hot); }
+  .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; padding-left: 4px; }
+  .check input { accent-color: var(--red); width: 15px; height: 15px; }
+
+  .code { border-top: 1px solid var(--line); background: #0a0809; overflow-x: auto; }
+  .code table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 13px; line-height: 1.55; }
+  .code td { padding: 0 10px; white-space: pre; vertical-align: top; }
+  .code td.no { color: var(--faint); text-align: right; user-select: none; width: 1%; }
+  .code td.sg { user-select: none; width: 1%; color: var(--faint); }
+  .code tr.add { background: var(--code-add); } .code tr.add td.sg { color: var(--ok); }
+  .code tr.del { background: var(--code-del); } .code tr.del td.sg { color: var(--red-hot); }
+  .code tr.gap td { color: var(--faint); text-align: center; font-style: italic; background: var(--panel); }
+  .code .none { padding: 12px 16px; margin: 0; color: var(--muted); }
+
+  .empty { border: 1px dashed var(--line-2); border-radius: 12px; padding: 32px; text-align: center; color: var(--muted); }
+  .legend { color: var(--faint); font-size: 13px; margin: 8px 0 0; }
+
+  /* Panel derecho: comandos */
+  aside.cmds { grid-row: 1; grid-column: 3; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  .cmds-box { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--red); border-radius: 14px; padding: 16px 16px 8px; }
+  .cmds-box > h2 { margin: 0; font-size: 18px; }
+  .cmds-box > .sub { margin: 2px 0 0; font-size: 13.5px; color: var(--muted); }
+  .cgroup h3 { margin: 18px 0 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); font-weight: 700; }
+  .cmd { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; margin-bottom: 8px; overflow: hidden; }
+  .cmd-top { display: flex; align-items: flex-start; gap: 8px; padding: 8px 8px 6px 11px; }
+  .cmd-top code { flex: 1; min-width: 0; font-size: 12.5px; background: none; padding: 0; color: var(--ink); white-space: pre-wrap; }
+  .cmd-top code::before { content: "$ "; color: var(--red-hot); user-select: none; }
+  .cmd .copy { flex: none; border: 1px solid var(--line-2); background: var(--card); border-radius: 6px; padding: 2px 9px; font-size: 12px; cursor: pointer; color: var(--muted); }
+  .cmd .copy:hover { color: var(--ink); border-color: var(--red); }
+  .cmd .copy.ok { color: var(--ok); border-color: var(--ok-line); }
+  .cmd p { margin: 0; padding: 0 11px 9px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .cmds-foot { margin: 6px 0 8px; font-size: 12.5px; color: var(--faint); }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); background: var(--ink); color: #1a1112; font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* Pantallas medianas: los comandos bajan debajo del contenido */
+  @media (max-width: 1260px) {
+    .layout { grid-template-columns: 250px minmax(0, 1fr); }
+    aside.cmds { grid-row: 2; grid-column: 2; position: static; max-height: none; }
+  }
+  /* Móvil y tableta: la barra lateral pasa arriba como tiras compactas */
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 18px; padding-top: 16px; }
+    aside.side { grid-row: auto; position: static; max-height: none; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+    aside.cmds { grid-row: auto; grid-column: auto; }
+    .side h2, .side .btnrow { display: none; }
+    .side .progress { grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+    .side .progress .num { gap: 10px; justify-content: flex-start; }
+    .navlist { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .navlist button { width: auto; white-space: nowrap; border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 14px; }
+    .navlist button[aria-current="true"], .navlist button[aria-pressed="true"] { border-color: var(--red); }
+    .sec-h button { grid-template-columns: auto 1fr auto; }
+    .sec-h .meta { grid-column: 2; grid-row: 3; justify-items: start; margin-top: 4px; }
+    .sec-h .caret { grid-column: 3; grid-row: 1 / span 2; }
+    .secbar { width: 100%; }
+  }
+  @media (max-width: 560px) {
+    .stats { gap: 14px; }
+    .status { margin-left: 0; }
+    .line1 { flex-wrap: wrap; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .meter i, .caret, .toast { transition: none; } .chg.flash { animation: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div>
+      <h1><span class="dot"></span>Nexus-diff</h1>
+      <p id="meta"></p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" aria-label="Navegación y filtros">
+    <div>
+      <h2>Buscar</h2>
+      <input type="search" id="q" placeholder="Archivo, función o texto…" aria-label="Buscar">
+    </div>
+    <div>
+      <h2>Nivel de detalle</h2>
+      <div class="seg" role="group" aria-label="Nivel de detalle">
+        <button type="button" data-mode="simple" aria-pressed="true">Simple</button>
+        <button type="button" data-mode="tecnico" aria-pressed="false">Técnico</button>
+      </div>
+    </div>
+    <div>
+      <h2>Progreso de revisión</h2>
+      <div class="progress">
+        <div class="num"><span>Revisados</span><b id="progress"></b></div>
+        <div class="meter"><i id="meter"></i></div>
+      </div>
+    </div>
+    <div id="states-box" hidden>
+      <h2>Estado de la anotación</h2>
+      <ul class="navlist" id="states"></ul>
+    </div>
+    <div id="tags-box" hidden>
+      <h2>Filtrar por efecto</h2>
+      <ul class="navlist" id="tagfilters"></ul>
+    </div>
+    <div id="nav-box" hidden>
+      <h2>Secciones</h2>
+      <ul class="navlist" id="nav"></ul>
+    </div>
+    <div class="btnrow">
+      <button type="button" class="btn" id="expand">Abrir todo el código</button>
+      <button type="button" class="btn" id="collapse">Cerrar todo</button>
+    </div>
+  </aside>
+
+  <main>
+    <div id="ai"></div>
+    <p id="visible" aria-live="polite"></p>
+    <div id="feed"></div>
+    <p class="legend">Rojo: cambios que la IA no declaró y etiquetas de riesgo alto (borrado de datos, secretos, controles de acceso).
+      Ámbar: anotaciones desactualizadas y riesgo medio (red, procesos, dependencias). Verde: Nexus-diff confirma lo que dijo la IA.
+      Los textos principales son lo que la IA dice que hizo; debajo, Nexus-diff los contrasta con el resumen que calcula del diff.</p>
+  </main>
+
+  <aside class="cmds" aria-label="Comandos de Nexus-diff">
+    <div class="cmds-box">
+      <h2>Comandos</h2>
+      <p class="sub">Ejecútalos en la terminal, en la raíz del repo. Un clic copia el comando.</p>
+      <div id="cmds"></div>
+      <p class="cmds-foot">Todos aceptan <code>--repo RUTA</code> y <code>--config ARCHIVO</code>. Lista completa: <code>nexus --help</code>.</p>
+    </div>
+  </aside>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>const DATA = /*__NEXUS_DIFF_DATA__*/null;</script>
+<script>
+(function () {
+  "use strict";
+  const TYPE_LABEL = { "añadido": "Nuevo", "modificado": "Modificado", "eliminado": "Eliminado", "movido": "Movido" };
+  const STATUS = {
+    anotado: { cls: "ok", label: "✓ Coincide" },
+    no_declarado: { cls: "nd", label: "● No declarado" },
+    desactualizado: { cls: "old", label: "◐ Desactualizado" }
+  };
+  const STATE_ITEMS = [["all", "Todos", "all"], ["no_declarado", "No declarados", "nd"], ["desactualizado", "Desactualizados", "old"], ["anotado", "Coinciden", "ok"]];
+  const RISK = {};
+  const state = { mode: "simple", filter: "all", tags: new Set(), q: "", done: new Set() };
+
+  /* Comandos reales de la CLI (nexus --help), agrupados por para qué sirven */
+  const COMMANDS = [
+    { grupo: "Ver los cambios", items: [
+      ["nexus scan", "Lista los cambios en la terminal, agrupados por sección."],
+      ["nexus serve --open", "Abre esta página en localhost. Se actualiza al recargar."],
+      ["nexus report --open", "Genera un HTML fijo en .git/nexus-diff/report.html y lo abre."]
+    ] },
+    { grupo: "Elegir qué comparar", items: [
+      ["nexus scan --staged", "Solo lo que está en el índice (después de git add)."],
+      ["nexus scan --base main", "Compara contra una rama o commit en lugar de HEAD."],
+      ["nexus scan --compact --json -", "JSON reducido, sin diff: pensado para pasárselo a un agente."]
+    ] },
+    { grupo: "Anotaciones de la IA", items: [
+      ["nexus link --autor claude-code --tarea 'qué se pidió y qué se hizo' --cambio <id> 'resumen'", "Registra lo que la IA dice que hizo. Repite --cambio por cada id."],
+      ["nexus link --clear", "Borra las anotaciones de esta base."]
+    ] },
+    { grupo: "Configuración", items: [
+      ["nexus init", "Propone nexus-diff.config.json con las secciones del proyecto."],
+      ["nexus sections", "Muestra cómo se clasifica cada archivo del repo."],
+      ["nexus install", "Instala el comando, las skills y el plugin de opencode."]
+    ] }
+  ];
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  function store(key, value) { try { localStorage.setItem("nexus-diff." + key, value); } catch (e) {} }
+  function load(key) { try { return localStorage.getItem("nexus-diff." + key); } catch (e) { return null; } }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function rich(s) { return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>"); }
+  function el(tag, attrs, html) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+    if (html !== undefined) node.innerHTML = html;
+    return node;
+  }
+  function whereOf(c) {
+    const ev = c.evidencia && c.evidencia[0];
+    return ev ? ev.archivo + ":" + ev.linea_inicio : c.archivo;
+  }
+  const riskClass = tag => "r" + (RISK[tag] >= 3 ? 3 : RISK[tag] >= 2 ? 2 : 1);
+
+  /* Copiar, con respaldo para páginas abiertas desde archivo (sin contexto seguro) */
+  let toastTimer;
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+  }
+  function copyText(text, done) {
+    const ok = () => toast(done);
+    const fallback = () => {
+      const area = el("textarea"); area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.appendChild(area); area.select();
+      try { document.execCommand("copy"); ok(); } catch (e) { window.prompt("Copia el texto:", text); }
+      area.remove();
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
+  }
+  function flash(btn, label) {
+    const old = btn.textContent; btn.textContent = label; btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1300);
+  }
+
+  /* Prompt predefinido para preguntarle a un agente por un cambio concreto */
+  const STATE_TEXT = {
+    no_declarado: "La IA no mencionó este cambio en sus anotaciones.",
+    desactualizado: "La anotación de la IA quedó desactualizada: el código cambió después de anotarlo.",
+    anotado: "La anotación de la IA coincide con el código."
+  };
+  function buildPrompt(c) {
+    const where = c.archivo + ":" + (c.evidencia[0] ? c.evidencia[0].linea_inicio : 1);
+    const out = ["Revisa este cambio de mi repositorio y explícamelo.", ""];
+    out.push("Ubicación: `" + where + "`" + (c.simbolo ? " (`" + c.simbolo + "`)" : "") +
+      (c.evidencia[0] && c.evidencia[0].lado === "viejo" ? " en la versión anterior" : ""));
+    out.push("Id de Nexus-diff: `" + c.id + "`");
+    out.push("Tipo de cambio: " + (TYPE_LABEL[c.tipo_cambio] || c.tipo_cambio).toLowerCase());
+    out.push("Resumen de Nexus-diff: " + c.resumen);
+    if (c.resumen_ia) out.push("Lo que dijo la IA: " + c.resumen_ia);
+    if (STATE_TEXT[c.estado_anotacion]) out.push("Estado de la anotación: " + STATE_TEXT[c.estado_anotacion]);
+    if (c.etiquetas.length) out.push("Etiquetas de riesgo: " + c.etiquetas.join(", "));
+    if (DATA.tarea) out.push("Tarea declarada: " + DATA.tarea);
+    const lines = c.diff.slice(0, 40);
+    if (lines.length) {
+      out.push("", "Líneas cambiadas:", "```diff");
+      for (const l of lines) out.push(l.t === "…" ? "…" : (l.t === " " ? " " : l.t) + l.x);
+      if (c.diff.length > lines.length) out.push("… (" + (c.diff.length - lines.length) + " líneas más)");
+      out.push("```");
+    }
+    const why = c.estado_anotacion === "no_declarado" ? "¿Por qué se hizo si la IA no lo mencionó? ¿Está justificado por la tarea?"
+      : c.estado_anotacion === "desactualizado" ? "¿Qué cambió en el código después de que se anotara?"
+      : "¿Por qué hizo falta" + (DATA.tarea ? " para la tarea" : "") + "?";
+    out.push("", "Responde con:",
+      "1. Qué hacía el código antes y qué hace ahora.",
+      "2. " + why,
+      "3. Qué riesgos o efectos secundarios tiene" + (c.etiquetas.length ? ", sobre todo en: " + c.etiquetas.join(", ") : "") + ".",
+      "4. Qué debería probar o revisar a mano.", "",
+      "Lee el archivo real antes de responder; no te bases solo en este resumen.");
+    return out.join("\n");
+  }
+
+  /* Lo revisado se recuerda por repo y base; un cambio con otro contenido (huella) vuelve a pendiente */
+  const doneKey = DATA ? "done." + DATA.repo + "." + (DATA.base_commit || DATA.base) : "done";
+  const changeKey = c => c.id + "#" + (c.huella || "");
+
+  function secStatus(list) {
+    const count = s => list.filter(c => c.estado_anotacion === s).length;
+    return { nd: count("no_declarado"), old: count("desactualizado"), ok: count("anotado") };
+  }
+
+  function renderHeader() {
+    const t = DATA.totales;
+    const base = DATA.base + (DATA.base_commit ? " (" + DATA.base_commit + ")" : "");
+    const when = new Date(DATA.generado).toLocaleString("es");
+    $("#meta").textContent = DATA.repo + " · comparado con " + base + " · " + DATA.modo + " · " + when;
+    const items = [[t.cambios, t.cambios === 1 ? "cambio" : "cambios", ""], [t.archivos, t.archivos === 1 ? "archivo" : "archivos", ""],
+                   ["+" + t["añadidas"] + " / −" + t.eliminadas, "líneas", ""]];
+    if (t.riesgo_alto) items.push([t.riesgo_alto, "riesgo alto", " hot"]);
+    if (t.no_declarados) items.push([t.no_declarados, "no declarados", " warn"]);
+    $("#stats").innerHTML = items.map(([n, label, cls]) => '<div class="stat' + cls + '"><b>' + esc(n) + "</b><span>" + label + "</span></div>").join("");
+  }
+
+  function renderAI(annotated) {
+    const box = $("#ai");
+    if (DATA.tarea || annotated) {
+      const author = DATA.autor_anotaciones ? '<p class="by">Anotado por ' + esc(DATA.autor_anotaciones) + "</p>" : "";
+      const body = DATA.tarea ? rich(DATA.tarea) : '<span class="small">La IA anotó cambios pero no describió la tarea.</span>';
+      box.appendChild(el("section", { class: "claim", "aria-label": "Tarea declarada" },
+        '<div class="q" aria-hidden="true">“</div><div><h2>Lo que la IA dice que hizo</h2><p>' + body + "</p>" + author + "</div>"));
+    } else {
+      box.appendChild(el("p", { class: "notice small" }, "La IA no anotó esta revisión: los resúmenes salen solo de las reglas de Nexus-diff."));
+    }
+    const claims = DATA.declaraciones_sin_respaldo || [];
+    if (claims.length) {
+      const panel = el("section", { class: "alertbox", "aria-label": "Declaraciones sin respaldo" });
+      panel.appendChild(el("h2", {}, "La IA dice que cambió esto, pero no aparece en el código"));
+      const list = el("ul");
+      for (const claim of claims) list.appendChild(el("li", {}, '<span class="path">' + esc(claim.id) + "</span>: " + rich(claim.resumen)));
+      panel.appendChild(list);
+      box.appendChild(panel);
+    }
+  }
+
+  /* Barra lateral: estado de la anotación, efectos (etiquetas) y secciones */
+  function renderStates() {
+    const list = $("#states"); list.innerHTML = "";
+    for (const [key, label, sw] of STATE_ITEMS) {
+      const n = key === "all" ? DATA.cambios.length : DATA.cambios.filter(c => c.estado_anotacion === key).length;
+      const b = el("button", { type: "button", "data-key": key, "aria-pressed": String(state.filter === key) },
+        '<span class="sw ' + sw + '"></span><span class="lbl">' + label + '</span><span class="n">' + n + "</span>");
+      b.addEventListener("click", () => { state.filter = state.filter === key ? "all" : key; applyFilters(); });
+      const li = el("li"); li.appendChild(b); list.appendChild(li);
+    }
+    $("#states-box").hidden = false;
+  }
+
+  function renderTagFilters() {
+    const counts = {};
+    for (const c of DATA.cambios) for (const tag of c.etiquetas) counts[tag] = (counts[tag] || 0) + 1;
+    const tags = Object.keys(counts).sort((a, b) => (RISK[b] - RISK[a]) || a.localeCompare(b));
+    if (!tags.length) return;
+    const list = $("#tagfilters");
+    for (const tag of tags) {
+      const dot = RISK[tag] >= 3 ? "nd" : RISK[tag] >= 2 ? "old" : "none";
+      const b = el("button", { type: "button", "data-tag": tag, "aria-pressed": "false" },
+        '<span class="alert ' + dot + '"></span><span class="lbl">' + esc(tag) + '</span><span class="n">' + counts[tag] + "</span>");
+      b.addEventListener("click", () => {
+        state.tags.has(tag) ? state.tags.delete(tag) : state.tags.add(tag);
+        applyFilters();
+      });
+      const li = el("li"); li.appendChild(b); list.appendChild(li);
+    }
+    $("#tags-box").hidden = false;
+  }
+
+  function renderNav(groups) {
+    const nav = $("#nav");
+    groups.forEach((g, gi) => {
+      const st = secStatus(g.items.map(x => x[0]));
+      const dot = st.nd ? "nd" : st.old ? "old" : "none";
+      const b = el("button", { type: "button", "data-target": "seccion-" + gi },
+        '<span class="alert ' + dot + '"></span><span class="lbl">' + esc(g.s.nombre) + '</span><span class="n">' + g.items.length + "</span>");
+      b.addEventListener("click", () => {
+        const sec = document.getElementById("seccion-" + gi);
+        const head = $(".sec-h button", sec);
+        if (head.getAttribute("aria-expanded") !== "true") head.click();
+        sec.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      const li = el("li"); li.appendChild(b); nav.appendChild(li);
+    });
+    $("#nav-box").hidden = !groups.length;
+  }
+
+  function codeTable(c) {
+    const rows = c.diff.map(line => {
+      if (line.t === "…") return '<tr class="gap"><td colspan="4">' + esc(line.x || "⋯") + "</td></tr>";
+      const cls = line.t === "+" ? "add" : line.t === "-" ? "del" : "ctx";
+      const sign = line.t === " " ? "" : (line.t === "-" ? "−" : "+");
+      return '<tr class="' + cls + '"><td class="no">' + (line.o ?? "") + '</td><td class="no">' + (line.n ?? "") +
+             '</td><td class="sg">' + sign + "</td><td>" + esc(line.x) + "</td></tr>";
+    });
+    if (!rows.length) return '<p class="none">Sin líneas de texto que mostrar (archivo binario o movido sin cambios).</p>';
+    return '<table><thead hidden><tr><th>Línea anterior</th><th>Línea nueva</th><th>Cambio</th><th>Código</th></tr></thead><tbody>' + rows.join("") + "</tbody></table>";
+  }
+
+  /* Tarjeta: 1) qué se hizo  2) dónde  3) verificación  4) acciones */
+  function renderChange(c, i) {
+    const estado = c.estado_anotacion;
+    const st = STATUS[estado];
+    const li = el("li", { class: "chg" + (estado ? " " + estado : ""), id: "chg-" + i });
+    li.dataset.tags = c.etiquetas.join("|");
+    li.dataset.estado = estado || "";
+    li.dataset.search = [c.archivo, c.archivo_anterior || "", c.simbolo || "", c.resumen, c.resumen_ia || "", c.resumen_tecnico].join(" ").toLowerCase();
+
+    const main = el("div", { class: "main" });
+    main.appendChild(el("div", { class: "line1" },
+      '<span class="badge t-' + esc(c.tipo_cambio) + '">' + esc(TYPE_LABEL[c.tipo_cambio] || c.tipo_cambio) + "</span>" +
+      (st ? '<span class="status ' + st.cls + '">' + st.label + "</span>" : "")));
+    main.appendChild(el("p", { class: "headline simple" }, rich(c.resumen_ia || c.resumen)));
+    main.appendChild(el("p", { class: "headline tech techbox" }, rich(c.resumen_tecnico)));
+    const ev = c.evidencia[0];
+    const dir = c.archivo.replace(/[^/]+$/, "");
+    main.appendChild(el("p", { class: "where" }, esc(dir) + "<b>" + esc(c.archivo.slice(dir.length)) + "</b>" +
+      (c.simbolo ? " · " + esc(c.simbolo) : "") + (ev ? ":" + ev.linea_inicio : "") + (ev && ev.lado === "viejo" ? " (versión anterior)" : "")));
+
+    const verify = {
+      no_declarado: ["nd", "⚠", "La IA no mencionó este cambio", "Resumen calculado por Nexus-diff a partir del código. Revísalo con prioridad."],
+      desactualizado: ["old", "◐", "La anotación ya no coincide con el código", "Nexus-diff ve ahora: " + c.resumen],
+      anotado: ["ok", "✓", "Nexus-diff lo confirma", c.resumen]
+    }[estado];
+    if (verify) {
+      main.appendChild(el("div", { class: "verify simple " + verify[0] },
+        '<span class="ico" aria-hidden="true">' + verify[1] + "</span><strong>" + verify[2] + "</strong><p>" + rich(verify[3]) + "</p>"));
+    }
+    li.appendChild(main);
+
+    const foot = el("div", { class: "foot" });
+    for (const tag of c.etiquetas) foot.appendChild(el("span", { class: "tag " + riskClass(tag) }, esc(tag)));
+    foot.appendChild(el("span", { class: "spacer" }));
+    const copy = el("button", { type: "button", class: "link" }, "Copiar ruta:línea");
+    copy.addEventListener("click", () => { copyText(whereOf(c), "Ruta copiada"); flash(copy, "Copiado ✓"); });
+    foot.appendChild(copy);
+    const ask = el("button", { type: "button", class: "link prompt", title: "Copia un prompt listo para pegar en tu agente y preguntar por este cambio" }, "Copiar prompt");
+    ask.addEventListener("click", () => { copyText(buildPrompt(c), "Prompt copiado: pégalo en tu agente"); flash(ask, "Copiado ✓"); });
+    foot.appendChild(ask);
+    const codeId = "code-" + i;
+    const toggle = el("button", { type: "button", class: "link code-toggle", "aria-expanded": "false", "aria-controls": codeId }, "Ver código ▾");
+    foot.appendChild(toggle);
+    const lab = el("label", { class: "check" }, '<input type="checkbox"> Revisado');
+    const box = lab.firstChild;
+    box.checked = state.done.has(changeKey(c)); li.classList.toggle("done", box.checked);
+    box.addEventListener("change", () => {
+      const key = changeKey(c);
+      box.checked ? state.done.add(key) : state.done.delete(key);
+      li.classList.toggle("done", box.checked);
+      store(doneKey, JSON.stringify([...state.done]));
+      renderProgress();
+    });
+    foot.appendChild(lab);
+    li.appendChild(foot);
+
+    const code = el("div", { class: "code", id: codeId, hidden: "" });
+    toggle.addEventListener("click", () => {
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      if (open && !code.innerHTML) code.innerHTML = codeTable(c);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.textContent = open ? "Ocultar código ▴" : "Ver código ▾";
+      code.hidden = !open;
+    });
+    li.appendChild(code);
+    return li;
+  }
+
+  /* Sección: cabecera propia con número, descripción, estado y barra */
+  function renderFeed(groups) {
+    const feed = $("#feed");
+    if (!DATA.cambios.length) {
+      feed.appendChild(el("div", { class: "empty" }, "No hay cambios pendientes respecto a <b>" + esc(DATA.base) + "</b>."));
+      return;
+    }
+    groups.forEach((g, gi) => {
+      const st = secStatus(g.items.map(x => x[0]));
+      const box = el("section", { class: "sec" + (st.nd ? " has-nd" : st.old ? " has-old" : ""), id: "seccion-" + gi, "aria-labelledby": "seccion-" + gi + "-t" });
+      const bodyId = "seccion-" + gi + "-body";
+      const n = g.items.length;
+      const chips = '<span class="chips"><span class="chip count">' + n + (n === 1 ? " cambio" : " cambios") + "</span>" +
+        (st.nd ? '<span class="chip nd">' + st.nd + " no declarado" + (st.nd > 1 ? "s" : "") + "</span>" : "") +
+        (st.old ? '<span class="chip old">' + st.old + " desactualizado" + (st.old > 1 ? "s" : "") + "</span>" : "") + "</span>";
+      const bar = st.nd + st.old + st.ok
+        ? '<span class="secbar" aria-hidden="true">' + ["nd", "old", "ok"].filter(k => st[k]).map(k => '<i class="' + k + '" style="flex:' + st[k] + '"></i>').join("") + "</span>"
+        : "";
+      const btn = el("button", { type: "button", "aria-expanded": "true", "aria-controls": bodyId },
+        '<span class="idx" aria-hidden="true">' + String(gi + 1).padStart(2, "0") + '</span><span class="title" id="seccion-' + gi + '-t">' + esc(g.s.nombre) + "</span>" +
+        '<span class="meta">' + chips + bar + '</span><span class="caret" aria-hidden="true">▾</span><span class="desc">' + esc(g.s.descripcion || "") + "</span>");
+      const h = el("h2", { class: "sec-h" }); h.appendChild(btn); box.appendChild(h);
+      const body = el("div", { class: "sec-body", id: bodyId });
+      const ul = el("ul", { class: "changes" });
+      for (const [c, i] of g.items) ul.appendChild(renderChange(c, i));
+      body.appendChild(ul); box.appendChild(body);
+      btn.addEventListener("click", () => {
+        const open = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", String(open)); body.hidden = !open;
+      });
+      feed.appendChild(box);
+    });
+    feed.appendChild(el("div", { class: "empty", hidden: "", id: "empty" }, "Ningún cambio coincide con los filtros."));
+  }
+
+  function renderCommands() {
+    const box = $("#cmds");
+    for (const g of COMMANDS) {
+      const grp = el("div", { class: "cgroup" }, "<h3>" + esc(g.grupo) + "</h3>");
+      for (const [cmd, desc] of g.items) {
+        const row = el("div", { class: "cmd" }, '<div class="cmd-top"><code>' + esc(cmd) + '</code><button type="button" class="copy" aria-label="Copiar comando ' + esc(cmd) + '">Copiar</button></div><p>' + esc(desc) + "</p>");
+        $(".copy", row).addEventListener("click", e => { copyText(cmd, "Comando copiado"); flash(e.currentTarget, "Copiado ✓"); });
+        grp.appendChild(row);
+      }
+      box.appendChild(grp);
+    }
+  }
+
+  function renderProgress() {
+    const total = DATA.cambios.length;
+    const done = DATA.cambios.filter(c => state.done.has(changeKey(c))).length;
+    $("#progress").textContent = done + " de " + total;
+    $("#meter").style.width = (total ? done / total * 100 : 0) + "%";
+  }
+
+  function applyFilters() {
+    let shown = 0;
+    for (const li of document.querySelectorAll(".chg")) {
+      const tags = li.dataset.tags ? li.dataset.tags.split("|") : [];
+      const okState = state.filter === "all" || li.dataset.estado === state.filter;
+      const okTag = !state.tags.size || tags.some(t => state.tags.has(t));
+      const okText = !state.q || li.dataset.search.includes(state.q);
+      li.hidden = !(okState && okTag && okText);
+      if (!li.hidden) shown++;
+    }
+    for (const sec of document.querySelectorAll(".sec")) sec.hidden = !sec.querySelector(".chg:not([hidden])");
+    const empty = $("#empty"); if (empty) empty.hidden = shown > 0;
+    for (const b of document.querySelectorAll("#states button")) b.setAttribute("aria-pressed", String(b.dataset.key === state.filter));
+    for (const b of document.querySelectorAll("#tagfilters button")) b.setAttribute("aria-pressed", String(state.tags.has(b.dataset.tag)));
+    const total = DATA.cambios.length;
+    $("#visible").textContent = shown === total ? "" : "Mostrando " + shown + " de " + total + " cambios.";
+    renderProgress();
+  }
+
+  function setMode(mode) {
+    state.mode = mode; store("mode", mode);
+    for (const b of document.querySelectorAll(".seg button")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+    for (const n of document.querySelectorAll(".simple")) n.hidden = mode !== "simple";
+    for (const n of document.querySelectorAll(".techbox")) n.hidden = mode !== "tecnico";
+  }
+
+  /* Resalta en la barra lateral la sección que se está leyendo */
+  function spy() {
+    if (!("IntersectionObserver" in window)) return;
+    const links = [...document.querySelectorAll("#nav button")];
+    const obs = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) for (const l of links) l.setAttribute("aria-current", String(l.dataset.target === e.target.id));
+    }, { rootMargin: "-15% 0px -70% 0px" });
+    document.querySelectorAll(".sec").forEach(s => obs.observe(s));
+  }
+
+  function setAll(open) {
+    for (const b of document.querySelectorAll(".chg:not([hidden]) .code-toggle")) {
+      if ((b.getAttribute("aria-expanded") === "true") !== open) b.click();
+    }
+  }
+
+  renderCommands();
+  if (!DATA) { $("#feed").textContent = "No hay datos: genera el reporte con nexus.py."; return; }
+
+  for (const c of DATA.cambios) for (const tag of c.etiquetas) RISK[tag] = Math.max(RISK[tag] || 0, c.riesgo);
+  try { state.done = new Set(JSON.parse(load(doneKey) || "[]")); } catch (e) { state.done = new Set(); }
+  const annotated = DATA.cambios.some(c => c.estado_anotacion);
+  const groups = [];
+  for (const s of DATA.secciones) {
+    const items = DATA.cambios.map((c, i) => [c, i]).filter(([c]) => c.seccion === s.nombre);
+    if (items.length) groups.push({ s, items });
+  }
+
+  renderHeader();
+  renderAI(annotated);
+  if (annotated) renderStates();
+  renderTagFilters();
+  renderNav(groups);
+  renderFeed(groups);
+  for (const b of document.querySelectorAll(".seg button")) b.addEventListener("click", () => setMode(b.dataset.mode));
+  $("#q").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); applyFilters(); });
+  $("#expand").addEventListener("click", () => setAll(true));
+  $("#collapse").addEventListener("click", () => setAll(false));
+  setMode(load("mode") === "tecnico" ? "tecnico" : "simple");
+  applyFilters();
+  spy();
+})();
+</script>
+</body>
+</html>

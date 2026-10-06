@@ -1,4 +1,4 @@
-"""Clasificación de archivos en secciones según reglas de `codemap.config.json`."""
+"""Clasificación de archivos en secciones según reglas de `nexus-diff.config.json`."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 UNCLASSIFIED = "Sin clasificar"
-PROJECT_CONFIG = "codemap.config.json"
+PROJECT_CONFIG = "nexus-diff.config.json"
 GENERIC_CONFIG = Path(__file__).parent / "defaults" / "generic.json"
 
 

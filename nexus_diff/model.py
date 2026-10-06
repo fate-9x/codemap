@@ -1,4 +1,4 @@
-"""Estructuras de datos de Codemap.
+"""Estructuras de datos de Nexus-diff.
 
 El modelo es la frontera estable entre el análisis (git + parser) y la
 presentación (terminal, HTML y, en fases futuras, LLM / MCP). Los resúmenes se

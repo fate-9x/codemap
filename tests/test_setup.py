@@ -9,10 +9,10 @@ from unittest import mock
 
 from _util import TempRepo
 
-from codemap_core import gitsource, install, projectinit
-from codemap_core.analyze import analyze, build_matcher
-from codemap_core.cli import main
-from codemap_core.sections import PROJECT_CONFIG
+from nexus_diff import gitsource, install, projectinit
+from nexus_diff.analyze import analyze, build_matcher
+from nexus_diff.cli import main
+from nexus_diff.sections import PROJECT_CONFIG
 
 
 def run_cli(*args: str) -> tuple[int, str]:
@@ -90,9 +90,9 @@ class ProjectSetupTests(unittest.TestCase):
 
     def test_annotations_and_report_live_inside_git_dir(self):
         self.repo.write("ml/modelo.py", "x = 2\n")
-        store = gitsource.codemap_dir(self.root)
-        self.assertEqual(store, (self.root / ".git" / "codemap").resolve())
-        code, out = run_cli("annotate", "--repo", str(self.root), "--tarea", "t",
+        store = gitsource.nexus_diff_dir(self.root)
+        self.assertEqual(store, (self.root / ".git" / "nexus-diff").resolve())
+        code, out = run_cli("link", "--repo", str(self.root), "--tarea", "t",
                             "--cambio", "ml/modelo.py::*", "cambia x")
         self.assertEqual(code, 0, out)
         self.assertEqual(len(list((store / "anotaciones").glob("*.json"))), 1)
@@ -104,36 +104,36 @@ class ProjectSetupTests(unittest.TestCase):
 
 class InstallTests(unittest.TestCase):
     def setUp(self):
-        self.work = Path(tempfile.mkdtemp(prefix="codemap-install-"))
+        self.work = Path(tempfile.mkdtemp(prefix="nexus-diff-install-"))
 
     def tearDown(self):
         shutil.rmtree(self.work, ignore_errors=True)
 
     def test_skills_are_templated_with_the_command(self):
-        done, skipped = install.install_skills(self.work, command="codemap")
-        self.assertEqual({p.name for p in done}, {"codemap-annotate", "codemap-setup"})
+        done, skipped = install.install_skills(self.work, command="nexus")
+        self.assertEqual({p.name for p in done}, {"nexus-link", "nexus-setup"})
         self.assertEqual(skipped, [])
         for path in done:
             text = (path / "SKILL.md").read_text(encoding="utf-8")
             self.assertNotIn("{{", text)
             self.assertTrue(text.startswith(f"---\nname: {path.name}\n"))
-            self.assertIn("codemap scan" if path.name == "codemap-annotate" else "codemap init", text)
-        _, skipped = install.install_skills(self.work, command="codemap")
+            self.assertIn("nexus scan" if path.name == "nexus-link" else "nexus init", text)
+        _, skipped = install.install_skills(self.work, command="nexus")
         self.assertEqual(len(skipped), 2)  # no sobrescribe sin force
 
     def test_command_falls_back_to_python_launcher(self):
         with mock.patch("shutil.which", return_value=None):
-            self.assertTrue(install.codemap_command().startswith('python "'))
-        with mock.patch("shutil.which", return_value="C:/x/codemap.exe"):
-            self.assertEqual(install.codemap_command(), "codemap")
+            self.assertTrue(install.nexus_command().startswith('python "'))
+        with mock.patch("shutil.which", return_value="C:/x/nexus.exe"):
+            self.assertEqual(install.nexus_command(), "nexus")
 
     def test_opencode_plugin_and_commands(self):
-        plugin = install.install_opencode_plugin(self.work / "plugins" / "codemap.js")
+        plugin = install.install_opencode_plugin(self.work / "plugins" / "nexus-diff.js")
         self.assertNotIn("{{", plugin.read_text(encoding="utf-8"))
         self.assertIsNone(install.install_opencode_plugin(plugin))  # ya existe
         commands = install.install_opencode_commands(self.work / "commands")
-        self.assertEqual([p.name for p in commands], ["codemap-setup.md"])
-        self.assertIn("codemap-setup", commands[0].read_text(encoding="utf-8"))
+        self.assertEqual([p.name for p in commands], ["nexus-setup.md"])
+        self.assertIn("nexus-setup", commands[0].read_text(encoding="utf-8"))
 
     def test_install_skill_cli(self):
         code, out = run_cli("install-skill", "--dest", str(self.work))

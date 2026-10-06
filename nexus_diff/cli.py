@@ -1,4 +1,4 @@
-"""Interfaz de línea de comandos: scan, report, serve, annotate, init, sections e install."""
+"""Interfaz de línea de comandos: scan, report, serve, link, init, sections e install."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def format_terminal(data: dict, color: bool) -> str:
     t = data["totales"]
     base = data["base"] + (f" ({data['base_commit']})" if data["base_commit"] else "")
     out = [
-        st(f"Codemap · {data['repo']} · base {base} · {data['modo']}", "1"),
+        st(f"Nexus-diff · {data['repo']} · base {base} · {data['modo']}", "1"),
         f"{t['cambios']} {'cambio' if t['cambios'] == 1 else 'cambios'} en "
         f"{t['archivos']} {'archivo' if t['archivos'] == 1 else 'archivos'} "
         f"(+{t['añadidas']} / −{t['eliminadas']} líneas)"
@@ -49,7 +49,7 @@ def format_terminal(data: dict, color: bool) -> str:
     for claim in data.get("declaraciones_sin_respaldo", []):
         out.append(st(f"⚠ La IA anotó {claim['id']}, pero no hay ningún cambio ahí: {claim['resumen']}", "33"))
     if data.get("configuracion") == "genérica":
-        out.append(st(f"Secciones genéricas: ejecuta `codemap init` (o /codemap-setup) para adaptarlas a este proyecto.", "2"))
+        out.append(st(f"Secciones genéricas: ejecuta `nexus init` (o /nexus-setup) para adaptarlas a este proyecto.", "2"))
     if not data["cambios"]:
         out.append("\nNo hay cambios pendientes respecto a la base.")
         return "\n".join(out)
@@ -89,11 +89,11 @@ def _config(args) -> Path | None:
 
 
 def _store_dir(args) -> Path:
-    """Anotaciones: --store, CODEMAP_STORE o, por defecto, `.git/codemap/anotaciones` del repo."""
-    store = getattr(args, "store", None) or os.environ.get("CODEMAP_STORE")
+    """Anotaciones: --store, NEXUS_DIFF_STORE o, por defecto, `.git/nexus-diff/anotaciones` del repo."""
+    store = getattr(args, "store", None) or os.environ.get("NEXUS_DIFF_STORE")
     if store:
         return Path(store)
-    return gitsource.codemap_dir(gitsource.repo_root(args.repo)) / "anotaciones"
+    return gitsource.nexus_diff_dir(gitsource.repo_root(args.repo)) / "anotaciones"
 
 
 def _build(args) -> dict:
@@ -129,7 +129,7 @@ def _cmd_scan(args) -> int:
 
 def _cmd_report(args) -> int:
     output = Path(args.output) if args.output else (
-        gitsource.codemap_dir(gitsource.repo_root(args.repo)) / "report.html")
+        gitsource.nexus_diff_dir(gitsource.repo_root(args.repo)) / "report.html")
     path = write_report(_build(args), output)
     print(f"Reporte generado: {path}")
     if args.open:
@@ -145,7 +145,7 @@ def _cmd_serve(args) -> int:
     return 0
 
 
-def _cmd_annotate(args) -> int:
+def _cmd_link(args) -> int:
     changeset = analyze(args.repo, args.base, args.staged, _config(args))
     if args.clear:
         removed = annotations.clear(changeset.base_commit, _store_dir(args))
@@ -211,7 +211,7 @@ def _cmd_init(args) -> int:
         print(text, end="")
         return 0
     if target.exists() and not args.force:
-        print(f"Ya existe {target}. Revísalo con `codemap sections` o usa --force para regenerarlo.",
+        print(f"Ya existe {target}. Revísalo con `nexus sections` o usa --force para regenerarlo.",
               file=sys.stderr)
         return 1
     target.write_text(text, encoding="utf-8", newline="\n")
@@ -219,7 +219,7 @@ def _cmd_init(args) -> int:
     print(f"Creado {target} (stack: {stack}).")
     matcher, origin = build_matcher(root)
     print(projectinit.format_coverage(projectinit.coverage(matcher, files), origin))
-    print("\nRevisa nombres y descripciones (o usa /codemap-setup para que la IA las adapte al negocio).")
+    print("\nRevisa nombres y descripciones (o usa /nexus-setup para que la IA las adapte al negocio).")
     return 0
 
 
@@ -244,11 +244,11 @@ def _report_skills(done: list[Path], skipped: list[Path]) -> None:
 def _cmd_install(args) -> int:
     ok = True
     if not args.no_path:
-        print("Instalando el comando `codemap` (pip install -e)…")
+        print("Instalando el comando `nexus` (pip install -e)…")
         installed, detail = install.install_cli()
         ok &= installed
-        print("  comando    codemap" if installed else f"  ✗ pip falló:\n{detail}")
-    print(f"Las skills invocarán: {install.codemap_command()}")
+        print("  comando    nexus" if installed else f"  ✗ pip falló:\n{detail}")
+    print(f"Las skills invocarán: {install.nexus_command()}")
     _report_skills(*install.install_skills(force=True))
     if args.no_opencode:
         return 0 if ok else 1
@@ -279,7 +279,7 @@ def _cmd_install_opencode_plugin(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="codemap",
+        prog="nexus",
         description="Resume por secciones y en lenguaje natural lo que cambió en un repositorio git.",
     )
     common = argparse.ArgumentParser(add_help=False)
@@ -287,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--base", default="HEAD", help="commit o rama contra la que comparar (por defecto HEAD)")
     common.add_argument("--staged", action="store_true", help="analizar solo lo que está en el índice (git add)")
     common.add_argument("--config", help=f"secciones y exclusiones (por defecto {PROJECT_CONFIG} del repo o la genérica)")
-    common.add_argument("--store", help="carpeta de anotaciones (por defecto .git/codemap/anotaciones del repo)")
+    common.add_argument("--store", help="carpeta de anotaciones (por defecto .git/nexus-diff/anotaciones del repo)")
 
     sub = parser.add_subparsers(dest="command", required=True)
     scan = sub.add_parser("scan", parents=[common], help="mostrar los cambios en la terminal")
@@ -297,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.set_defaults(func=_cmd_scan)
 
     report = sub.add_parser("report", parents=[common], help="generar la página HTML")
-    report.add_argument("--output", help="ruta del HTML (por defecto .git/codemap/report.html)")
+    report.add_argument("--output", help="ruta del HTML (por defecto .git/nexus-diff/report.html)")
     report.add_argument("--open", action="store_true", help="abrir el reporte en el navegador")
     report.set_defaults(func=_cmd_report)
 
@@ -306,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     srv.add_argument("--open", action="store_true", help="abrir el navegador")
     srv.set_defaults(func=_cmd_serve)
 
-    ann = sub.add_parser("annotate", parents=[common],
+    ann = sub.add_parser("link", parents=[common],
                          help="registrar lo que la IA dice que hizo en cada cambio")
     ann.add_argument("file", nargs="?", help="JSON {tarea, autor, cambios: {id: resumen}} o '-' (entrada estándar)")
     ann.add_argument("--tarea", help="qué se pidió y qué se hizo (1-2 frases)")
@@ -314,7 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
     ann.add_argument("--cambio", nargs=2, action="append", metavar=("ID", "RESUMEN"),
                      help="anotación de un cambio; repetir por cada id")
     ann.add_argument("--clear", action="store_true", help="borrar las anotaciones de esta base")
-    ann.set_defaults(func=_cmd_annotate)
+    ann.set_defaults(func=_cmd_link)
 
     repo_only = argparse.ArgumentParser(add_help=False)
     repo_only.add_argument("--repo", default=".", help="carpeta del repositorio (por defecto, la actual)")
@@ -331,7 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
     sec.set_defaults(func=_cmd_sections)
 
     ins = sub.add_parser("install", help="instalar el comando, las skills y el plugin de opencode")
-    ins.add_argument("--no-path", action="store_true", help="no instalar el comando `codemap` con pip")
+    ins.add_argument("--no-path", action="store_true", help="no instalar el comando `nexus` con pip")
     ins.add_argument("--no-opencode", action="store_true", help="no instalar el plugin ni los comandos de opencode")
     ins.set_defaults(func=_cmd_install)
 

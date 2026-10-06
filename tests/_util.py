@@ -13,10 +13,10 @@ class TempRepo:
     """Repositorio git desechable para probar el análisis de punta a punta."""
 
     def __init__(self):
-        self.root = Path(tempfile.mkdtemp(prefix="codemap-test-"))
+        self.root = Path(tempfile.mkdtemp(prefix="nexus-diff-test-"))
         self.git("init", "-q")
         self.git("config", "user.email", "test@example.com")
-        self.git("config", "user.name", "Codemap Test")
+        self.git("config", "user.name", "Nexus-diff Test")
         self.git("config", "core.autocrlf", "false")
 
     def git(self, *args: str) -> str:

@@ -2,7 +2,7 @@ import unittest
 
 import _util  # noqa: F401  (añade el paquete al path)
 
-from codemap_core import diffparse, sections, symbols, tags
+from nexus_diff import diffparse, sections, symbols, tags
 
 SAMPLE_DIFF = """\
 diff --git a/app/views.py b/app/views.py

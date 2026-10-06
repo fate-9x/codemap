@@ -392,7 +392,7 @@ def build_matcher(root: Path, config_path: Path | None = None) -> tuple[SectionM
     try:
         relative = TOOL_DIR.relative_to(root).as_posix()
         if relative != ".":
-            extra_exclude.append(relative + "/**")  # Codemap dentro del repo que analiza
+            extra_exclude.append(relative + "/**")  # Nexus-diff dentro del repo que analiza
     except ValueError:
         pass
     return SectionMatcher(load_config(path), extra_exclude), origin

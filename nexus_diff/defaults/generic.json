@@ -27,7 +27,7 @@
                 "Cargo.lock", "go.mod", "go.sum", "**/*.csproj", "**/*.sln", "**/Dockerfile", "**/docker-compose*.yml",
                 ".github/**", ".gitlab-ci.yml", ".gitignore", ".gitattributes", "**/*.ini", "**/*.toml", "**/*.cfg",
                 "**/.env*", "**/*.config.js", "**/*.config.ts", "**/*.config.mjs", "tsconfig*.json",
-                "**/settings*.py", "manage.py", "ProjectSettings/**", "Packages/manifest.json", "codemap.config.json"]
+                "**/settings*.py", "manage.py", "ProjectSettings/**", "Packages/manifest.json", "nexus-diff.config.json"]
     },
     {
       "nombre": "Datos",

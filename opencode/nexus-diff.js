@@ -1,31 +1,31 @@
 /**
- * Plugin de Codemap para opencode.
+ * Plugin de Nexus-diff para opencode.
  *
  * Al empezar una sesión guarda una foto de los cambios que ya existían en el repo.
  * Cada vez que la sesión principal termina de responder (`session.idle`), vuelve a
- * analizar el repo con Codemap: si la sesión dejó cambios sin anotar (o con una
- * anotación desactualizada), le pide al agente que use la skill `codemap-annotate`.
+ * analizar el repo con Nexus-diff: si la sesión dejó cambios sin anotar (o con una
+ * anotación desactualizada), le pide al agente que use la skill `nexus-link`.
  *
  * - Solo actúa en la sesión principal: los subagentes (sesiones con parentID) no se
  *   interrumpen, pero sus cambios se reclaman al terminar la sesión principal.
  * - Como mucho MAX_NUDGES avisos por sesión y nunca dos veces por el mismo conjunto
  *   de cambios: evita bucles si el modelo no anota.
- * - CODEMAP_OPENCODE_DISABLE=1 lo desactiva.
+ * - NEXUS_DIFF_OPENCODE_DISABLE=1 lo desactiva.
  *
- * Fuente: tools/codemap/opencode/codemap.js. Se instala con
- * `python tools/codemap/codemap.py install-opencode-plugin`, que rellena las rutas.
+ * Fuente: tools/nexus-diff/opencode/nexus-diff.js. Se instala con
+ * `python tools/nexus-diff/nexus.py install-opencode-plugin`, que rellena las rutas.
  */
 
 import { appendFileSync } from "node:fs";
 
 const PYTHON = "{{PYTHON}}";
-const CODEMAP = "{{CODEMAP}}";
+const NEXUS = "{{NEXUS}}";
 const MAX_NUDGES = 2;
 const MAX_LISTED = 10;
 
-// CODEMAP_OPENCODE_LOG=<ruta> deja un registro de lo que hace el plugin (diagnóstico).
+// NEXUS_DIFF_OPENCODE_LOG=<ruta> deja un registro de lo que hace el plugin (diagnóstico).
 function log(...parts) {
-  const target = process.env.CODEMAP_OPENCODE_LOG;
+  const target = process.env.NEXUS_DIFF_OPENCODE_LOG;
   if (!target) return;
   const text = parts.map((p) => (typeof p === "string" ? p : JSON.stringify(p))).join(" ");
   try {
@@ -35,8 +35,8 @@ function log(...parts) {
   }
 }
 
-export const CodemapPlugin = async ({ client, $, directory }) => {
-  if (process.env.CODEMAP_OPENCODE_DISABLE) return {};
+export const NexusDiffPlugin = async ({ client, $, directory }) => {
+  if (process.env.NEXUS_DIFF_OPENCODE_DISABLE) return {};
   log("cargado", directory);
 
   const parents = new Map();   // sessionID -> parentID | null
@@ -57,7 +57,7 @@ export const CodemapPlugin = async ({ client, $, directory }) => {
 
   async function scan() {
     try {
-      const res = await $`${PYTHON} ${CODEMAP} scan --repo ${directory} --json - --compact`
+      const res = await $`${PYTHON} ${NEXUS} scan --repo ${directory} --json - --compact`
         .cwd(directory).quiet().nothrow();
       if (res.exitCode !== 0) {
         // no es un repo git u otro error: no molestar
@@ -80,13 +80,13 @@ export const CodemapPlugin = async ({ client, $, directory }) => {
     });
     if (pending.length > MAX_LISTED) lines.push(`- … y ${pending.length - MAX_LISTED} más`);
     const text = [
-      `[Codemap] Esta sesión dejó ${pending.length} ${pending.length === 1 ? "cambio" : "cambios"} sin anotar:`,
+      `[Nexus-diff] Esta sesión dejó ${pending.length} ${pending.length === 1 ? "cambio" : "cambios"} sin anotar:`,
       ...lines,
     ];
     if (missingTask) text.push("Tampoco hay descripción de la tarea ('tarea').");
     text.push(
       "",
-      "Carga la skill `codemap-annotate` y anota estos cambios antes de terminar " +
+      "Carga la skill `nexus-link` y anota estos cambios antes de terminar " +
         "(usa \"autor\": \"opencode\"). Si alguno no lo hiciste a propósito, dilo en su anotación.",
     );
     return text.join("\n");

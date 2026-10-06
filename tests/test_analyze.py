@@ -3,9 +3,9 @@ import unittest
 
 from _util import TempRepo
 
-from codemap_core.analyze import analyze
-from codemap_core.cli import format_terminal
-from codemap_core.render import render_html
+from nexus_diff.analyze import analyze
+from nexus_diff.cli import format_terminal
+from nexus_diff.render import render_html
 
 CONFIG = {
     "excluir": [],
@@ -157,7 +157,7 @@ class AnalyzeTests(unittest.TestCase):
         self.repo.write("app/views.py", VIEWS_NEW.replace("return 2", 'return "</script><b>"'))
         data = self.run_analysis().to_dict()
         html = render_html(data)
-        self.assertNotIn("/*__CODEMAP_DATA__*/", html)
+        self.assertNotIn("/*__NEXUS_DIFF_DATA__*/", html)
         self.assertEqual(html.count("</script>"), 2)  # solo los dos cierres reales
         self.assertIn("■ Backend", format_terminal(data, color=False))
         json.dumps(data)  # serializable

@@ -48,7 +48,7 @@ def serve(build: Callable[[], dict], host: str = "127.0.0.1", port: int = 8765,
     except OSError as exc:
         raise SystemExit(f"No se pudo usar el puerto {port} ({exc}). Prueba con --port <otro>.")
     url = f"http://{host}:{port}/"
-    print(f"Codemap en {url}  (recarga la página para ver cambios nuevos; Ctrl+C para salir)")
+    print(f"Nexus-diff en {url}  (recarga la página para ver cambios nuevos; Ctrl+C para salir)")
     if open_browser:
         webbrowser.open(url)
     try:

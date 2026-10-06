@@ -1,4 +1,4 @@
-# Codemap
+# Nexus-diff
 
 Revisar lo que cambió en un repositorio (por ejemplo, lo que hizo una IA) **sin leer el diff línea por línea**:
 un listado agrupado por sección, con un resumen de una línea por cambio, etiquetas de riesgo y el código como
@@ -20,24 +20,24 @@ deterministas; los escritos por la IA llegan con las [anotaciones](#anotaciones-
 1. Clona el repositorio en una carpeta donde vaya a quedarse (la instalación queda enlazada a esa carpeta):
 
    ```bash
-   git clone https://github.com/USUARIO/codemap.git
+   git clone https://github.com/USUARIO/nexus-diff.git
    ```
    ```bash
-   cd codemap
+   cd nexus-diff
    ```
 
-2. Instala Codemap (en Mac o Linux usa `python3` en lugar de `python`):
+2. Instala Nexus-diff (en Mac o Linux usa `python3` en lugar de `python`):
 
    ```bash
-   python codemap.py install
+   python nexus.py install
    ```
 
    Ese comando hace cuatro cosas:
 
-   - **Instala el comando `codemap`** con `pip install -e`. Queda enlazado a la carpeta clonada, así que los cambios en el código se aplican sin reinstalar.
-   - **Copia las skills** `codemap-annotate` y `codemap-setup` a `~/.claude/skills/`. Las usan Claude Code y opencode.
-   - **Copia el plugin de opencode** a `~/.config/opencode/plugins/codemap.js`, si opencode está instalado.
-   - **Copia el comando `/codemap-setup` de opencode** a `~/.config/opencode/commands/`.
+   - **Instala el comando `nexus`** con `pip install -e`. El proyecto y el paquete de pip se llaman `nexus-diff`, pero el comando es solo `nexus`. Queda enlazado a la carpeta clonada, así que los cambios en el código se aplican sin reinstalar.
+   - **Copia las skills** `nexus-link` y `nexus-setup` a `~/.claude/skills/`. Las usan Claude Code y opencode.
+   - **Copia el plugin de opencode** a `~/.config/opencode/plugins/nexus-diff.js`, si opencode está instalado.
+   - **Copia el comando `/nexus-setup` de opencode** a `~/.config/opencode/commands/`.
 
    Las opciones `--no-path` y `--no-opencode` omiten la instalación del comando y la parte de opencode,
    respectivamente.
@@ -45,10 +45,10 @@ deterministas; los escritos por la IA llegan con las [anotaciones](#anotaciones-
 3. Comprueba que funciona:
 
    ```bash
-   codemap --help
+   nexus --help
    ```
 
-4. Si usas opencode, reinícialo para que cargue el plugin y el comando `/codemap-setup`.
+4. Si usas opencode, reinícialo para que cargue el plugin y el comando `/nexus-setup`.
 
 ### Actualizar
 
@@ -60,55 +60,55 @@ Los cambios en el código se aplican solos. Si cambiaron las skills o el plugin 
 instalarlos:
 
 ```bash
-codemap install
+nexus install
 ```
 
 ### Problemas frecuentes
 
-- **El sistema no reconoce `codemap`.** La carpeta de ejecutables de Python (`Scripts` en Windows, `bin` en Mac/Linux) no está en el PATH. Añádela al PATH; mientras tanto, `python codemap.py <comando>` funciona igual desde la carpeta clonada.
-- **pip responde `externally-managed-environment`.** Ocurre en algunas distribuciones de Linux y con el Python de Homebrew, que protegen el Python del sistema. Instala el comando con [pipx](https://pipx.pypa.io) y el resto con Codemap:
+- **El sistema no reconoce `nexus`.** La carpeta de ejecutables de Python (`Scripts` en Windows, `bin` en Mac/Linux) no está en el PATH. Añádela al PATH; mientras tanto, `python nexus.py <comando>` funciona igual desde la carpeta clonada.
+- **pip responde `externally-managed-environment`.** Ocurre en algunas distribuciones de Linux y con el Python de Homebrew, que protegen el Python del sistema. Instala el comando con [pipx](https://pipx.pypa.io) y el resto con Nexus-diff:
 
   ```bash
   pipx install -e .
   ```
   ```bash
-  python3 codemap.py install --no-path
+  python3 nexus.py install --no-path
   ```
 
-- **Moviste la carpeta después de instalar.** El comando, las skills y el plugin apuntan a la ruta anterior. Ejecuta de nuevo `python codemap.py install` desde la nueva ubicación.
-- **opencode pide permiso cada vez que la IA ejecuta `codemap`.** Elige "always" la primera vez, o añade la regla `"codemap *": allow` a los permisos de `bash` de tu agente.
+- **Moviste la carpeta después de instalar.** El comando, las skills y el plugin apuntan a la ruta anterior. Ejecuta de nuevo `python nexus.py install` desde la nueva ubicación.
+- **opencode pide permiso cada vez que la IA ejecuta `nexus`.** Elige "always" la primera vez, o añade la regla `"nexus *": allow` a los permisos de `bash` de tu agente.
 
 ### Desinstalar
 
 ```bash
-pip uninstall codemap
+pip uninstall nexus-diff
 ```
 
-Después borra las carpetas `~/.claude/skills/codemap-annotate` y `~/.claude/skills/codemap-setup`, y los archivos
-`~/.config/opencode/plugins/codemap.js` y `~/.config/opencode/commands/codemap-setup.md`. Los datos de cada
-proyecto están en su `codemap.config.json` y en su carpeta `.git/codemap/`.
+Después borra las carpetas `~/.claude/skills/nexus-link` y `~/.claude/skills/nexus-setup`, y los archivos
+`~/.config/opencode/plugins/nexus-diff.js` y `~/.config/opencode/commands/nexus-setup.md`. Los datos de cada
+proyecto están en su `nexus-diff.config.json` y en su carpeta `.git/nexus-diff/`.
 
 ## Uso en un proyecto
 
-1. **Configura las secciones una vez por proyecto:** escribe `/codemap-setup` en Claude Code u opencode. La IA ejecuta `codemap init`, revisa la clasificación con `codemap sections` y deja `codemap.config.json` en la raíz del repo con nombres del negocio. Ese archivo se puede commitear. Sin él, Codemap usa secciones genéricas y lo indica.
+1. **Configura las secciones una vez por proyecto:** escribe `/nexus-setup` en Claude Code u opencode. La IA ejecuta `nexus init`, revisa la clasificación con `nexus sections` y deja `nexus-diff.config.json` en la raíz del repo con nombres del negocio. Ese archivo se puede commitear. Sin él, Nexus-diff usa secciones genéricas y lo indica.
 2. **Trabaja con la IA como siempre.** Al terminar, anota sus cambios (skill + plugin).
 3. **Revisa:**
 
 ```bash
-codemap scan
+nexus scan
 ```
 
 ```bash
-codemap serve --open
+nexus serve --open
 ```
 
 | Comando | Qué hace |
 |---|---|
 | `scan` | Muestra el listado de cambios en la terminal. `--json RUTA` guarda el resultado (`--json -` lo imprime; `--compact` lo reduce para agentes). |
-| `report [--open]` | Genera `.git/codemap/report.html`, una página que funciona sin conexión. |
+| `report [--open]` | Genera `.git/nexus-diff/report.html`, una página que funciona sin conexión. |
 | `serve [--port 8765] [--open]` | Sirve la página en `http://127.0.0.1:8765/`; cada recarga vuelve a analizar el repositorio. `/api/cambios` devuelve el JSON. |
-| `annotate --tarea T --cambio ID RESUMEN …` | Registra lo que la IA dice que hizo en cada cambio (ver [Anotaciones de la IA](#anotaciones-de-la-ia)). También acepta un JSON (`annotate ARCHIVO` o `-`). `--clear` borra las anotaciones. |
-| `init [--print] [--force]` | Propone `codemap.config.json`: detecta el stack y crea una sección por cada carpeta de dominio. |
+| `link --tarea T --cambio ID RESUMEN …` | Registra lo que la IA dice que hizo en cada cambio (ver [Anotaciones de la IA](#anotaciones-de-la-ia)). También acepta un JSON (`link ARCHIVO` o `-`). `--clear` borra las anotaciones. |
+| `init [--print] [--force]` | Propone `nexus-diff.config.json`: detecta el stack y crea una sección por cada carpeta de dominio. |
 | `sections [--json]` | Muestra cómo quedan clasificados todos los archivos del repo y cuáles no encajan en ninguna sección. |
 | `install [--no-path] [--no-opencode]` | Instala o actualiza el comando, las skills y el plugin. También existen `install-skill [--dest] [--force]` e `install-opencode-plugin [--dest] [--force]` por separado. |
 
@@ -121,13 +121,13 @@ Opciones comunes:
 
 Por defecto se comparan el árbol de trabajo y los archivos sin seguimiento contra la base.
 
-**Qué guarda Codemap en cada repositorio:** `codemap.config.json` en la raíz (lo editas tú o la IA, y se
-puede versionar). Las anotaciones y el reporte quedan en `.git/codemap/`: git no versiona esa carpeta, no se
+**Qué guarda Nexus-diff en cada repositorio:** `nexus-diff.config.json` en la raíz (lo editas tú o la IA, y se
+puede versionar). Las anotaciones y el reporte quedan en `.git/nexus-diff/`: git no versiona esa carpeta, no se
 ve en el árbol de trabajo y la comparten todas las copias de trabajo (worktrees) del mismo repo.
 
 ## Qué muestra
 
-Cada cambio tiene este formato (ver `codemap_core/model.py`):
+Cada cambio tiene este formato (ver `nexus_diff/model.py`):
 
 ```json
 {
@@ -149,76 +149,83 @@ Cada cambio tiene este formato (ver `codemap_core/model.py`):
 
 - **Unidad de revisión.** En Python y JavaScript, cada cambio corresponde a una función, un método o una clase. En plantillas HTML y Markdown hay un cambio por archivo, con la lista de bloques o apartados afectados. En el resto de los archivos, un cambio por archivo.
 - **Tipos de cambio:** nuevo, modificado, eliminado y movido. Detecta funciones renombradas (cuerpo parecido con otro nombre) y archivos movidos, incluso a carpetas que todavía no están en git.
-- **Etiquetas** (`codemap_core/tags.py`): red, escribe en disco, borrado, base de datos, ejecuta procesos, secretos, permisos, **quita permisos** (también se buscan en las líneas eliminadas), desactiva CSRF, dependencias y error de sintaxis. El código que solo se movió o se reindentó no genera etiquetas.
+- **Etiquetas** (`nexus_diff/tags.py`): red, escribe en disco, borrado, base de datos, ejecuta procesos, secretos, permisos, **quita permisos** (también se buscan en las líneas eliminadas), desactiva CSRF, dependencias y error de sintaxis. El código que solo se movió o se reindentó no genera etiquetas.
 - **Riesgo:** 3 = alto (borrado, secretos, quitar controles de acceso), 2 = medio y 1 = bajo. Dentro de cada sección, los cambios se ordenan de mayor a menor riesgo.
 
 ## Anotaciones de la IA
 
 El agente que hizo los cambios es quien mejor sabe *por qué* los hizo. La skill
-[`skills/codemap-annotate`](skills/codemap-annotate/SKILL.md), que se instala con `codemap install`, le indica
-que, al terminar cada tarea, escriba un resumen en lenguaje natural de cada cambio que detectó Codemap.
+[`skills/nexus-link`](skills/nexus-link/SKILL.md), que se instala con `nexus install`, le indica
+que, al terminar cada tarea, escriba un resumen en lenguaje natural de cada cambio que detectó Nexus-diff.
 
 Qué hace el agente:
 
 1. Ejecuta `scan --json - --compact`, que lista los cambios con su `id` (`archivo::símbolo`).
-2. Ejecuta un único comando: `codemap annotate --autor opencode --tarea '…' --cambio <id> '<resumen>' …`. No crea archivos temporales, así que en el agente basta con autorizar una vez `codemap *`.
-3. Si `annotate` devuelve 1, el informe explica qué falta (cambios sin anotar, ids inventados o la tarea) y el agente lo completa.
+2. Ejecuta un único comando: `nexus link --autor opencode --tarea '…' --cambio <id> '<resumen>' …`. No crea archivos temporales, así que en el agente basta con autorizar una vez `nexus *`.
+3. Si `link` devuelve 1, el informe explica qué falta (cambios sin anotar, ids inventados o la tarea) y el agente lo completa.
 
-**El diff sigue siendo la fuente de verdad.** La anotación es lo que la IA *dice* que hizo, y Codemap la contrasta:
+**El diff sigue siendo la fuente de verdad.** La anotación es lo que la IA *dice* que hizo, y Nexus-diff la contrasta:
 
 | Estado | Significado |
 |---|---|
 | anotado | La IA describió el cambio y el código no cambió desde entonces. |
-| **no declarado** | El cambio está en el código pero la IA no lo mencionó. Aparece primero en la página. |
+| **no declarado** | El cambio está en el código pero la IA no lo mencionó. Se marca en rojo y se puede filtrar desde la barra lateral. |
 | desactualizado | El código cambió después de anotarlo (la huella `huella` ya no coincide). |
 | declaración sin respaldo | La IA anotó un `id` que no corresponde a ningún cambio. |
 
-En la página, el texto de la IA lleva la marca «según la IA», y debajo queda siempre el resumen que Codemap calcula
-del diff. Las etiquetas de riesgo son deterministas: la IA no puede quitarlas.
+En la página, el texto principal de cada cambio es el de la IA, y debajo una franja de verificación lo contrasta con
+el resumen que Nexus-diff calcula del diff: roja si no se declaró, ámbar si quedó desactualizado y verde si coincide.
+Las etiquetas de riesgo son deterministas: la IA no puede quitarlas.
 
-Las anotaciones se guardan en `.git/codemap/anotaciones/<commit base>.json` del propio repo y se fusionan entre
+**La página.** Tema oscuro con tres zonas: a la izquierda, búsqueda, nivel de detalle (simple o técnico), progreso de
+revisión, filtros por estado y por efecto, y la lista de secciones; en el centro, las secciones con sus cambios; y a la
+derecha, los comandos de `nexus` con un botón para copiarlos. Cada cambio tiene «Copiar prompt», que deja en el
+portapapeles una pregunta lista para pegar en tu agente (con el archivo, el resumen, el estado y las líneas cambiadas),
+y una casilla «Revisado» que se recuerda en el navegador por repositorio y commit base.
+
+Las anotaciones se guardan en `.git/nexus-diff/anotaciones/<commit base>.json` del propio repo y se fusionan entre
 llamadas. Como cada archivo corresponde a un commit base, después de commitear se pueden seguir viendo con
 `--base <ese commit>`.
 
-Para otros agentes (por ejemplo, Cursor) sirven las mismas instrucciones de `SKILL.md`: solo hacen falta los comandos `scan` y `annotate`.
+Para otros agentes (por ejemplo, Cursor) sirven las mismas instrucciones de `SKILL.md`: solo hacen falta los comandos `scan` y `link`.
 
 ### opencode: activación automática
 
 opencode encuentra las skills en `~/.claude/skills/` sin hacer nada más. Por sí sola, la skill depende de que el
-modelo se acuerde de usarla al terminar. El plugin [`opencode/codemap.js`](opencode/codemap.js), que instala
-`codemap install`, lo exige. Queda en `~/.config/opencode/plugins/codemap.js`, con rutas absolutas a este Python
-y a este `codemap.py`, y hay que reiniciar opencode para que lo cargue. Funciona así:
+modelo se acuerde de usarla al terminar. El plugin [`opencode/nexus-diff.js`](opencode/nexus-diff.js), que instala
+`nexus install`, lo exige. Queda en `~/.config/opencode/plugins/nexus-diff.js`, con rutas absolutas a este Python
+y a este `nexus.py`, y hay que reiniciar opencode para que lo cargue. Funciona así:
 
 1. Con el primer mensaje de una sesión guarda una foto de los cambios que ya existían. No reclama nada de lo que estaba antes.
-2. Cada vez que la sesión principal termina de responder (`session.idle`), ejecuta `scan`. Si la sesión dejó cambios sin anotar o con la anotación desactualizada, le envía al agente un mensaje `[Codemap]` con la lista y le pide usar `codemap-annotate`. Esto incluye los cambios hechos con `bash` o por subagentes.
+2. Cada vez que la sesión principal termina de responder (`session.idle`), ejecuta `scan`. Si la sesión dejó cambios sin anotar o con la anotación desactualizada, le envía al agente un mensaje `[Nexus-diff]` con la lista y le pide usar `nexus-link`. Esto incluye los cambios hechos con `bash` o por subagentes.
 3. Los subagentes no reciben avisos. Hay como máximo 2 avisos por sesión y nunca dos por el mismo conjunto de cambios, para evitar bucles.
 
-`CODEMAP_OPENCODE_DISABLE=1` lo desactiva. `CODEMAP_OPENCODE_LOG=<ruta>` registra en un archivo lo que hace
-(útil para diagnosticar), y `CODEMAP_STORE` cambia la carpeta de anotaciones (lo usan los tests).
+`NEXUS_DIFF_OPENCODE_DISABLE=1` lo desactiva. `NEXUS_DIFF_OPENCODE_LOG=<ruta>` registra en un archivo lo que hace
+(útil para diagnosticar), y `NEXUS_DIFF_STORE` cambia la carpeta de anotaciones (lo usan los tests).
 
 Notas de la prueba real con opencode 1.18:
 
-- La primera vez, opencode pide permiso para ejecutar `codemap ...`. Elige **"always"** para no tener que confirmar cada anotación. Si tu agente restringe `bash` (como `orchestrator`), añade la regla `"codemap *": allow`.
+- La primera vez, opencode pide permiso para ejecutar `nexus ...`. Elige **"always"** para no tener que confirmar cada anotación. Si tu agente restringe `bash` (como `orchestrator`), añade la regla `"nexus *": allow`.
 - `opencode run` (modo no interactivo) termina antes de que el plugin reciba `session.idle`, así que el aviso solo funciona en la TUI o con `opencode serve`.
 
 ## Secciones
 
-Se definen en `codemap.config.json`, en la raíz de cada repo. Si no existe, se usa la configuración genérica
-[`codemap_core/defaults/generic.json`](codemap_core/defaults/generic.json). Para cada archivo se aplica la primera
+Se definen en `nexus-diff.config.json`, en la raíz de cada repo. Si no existe, se usa la configuración genérica
+[`nexus_diff/defaults/generic.json`](nexus_diff/defaults/generic.json). Para cada archivo se aplica la primera
 sección cuyas reglas coinciden; los archivos que no coinciden con ninguna quedan en "Sin clasificar". Cada
 sección tiene `nombre`, `descripcion` y estas reglas:
 
 - `rutas`: globs; `**/` equivale a cualquier número de carpetas.
 - `contenido`: expresiones regulares que se buscan en el contenido del archivo.
 
-**Setup.** `codemap init` hace la parte determinista:
+**Setup.** `nexus init` hace la parte determinista:
 
 1. Parte de la configuración genérica.
 2. Añade reglas según el stack que detecta (Django, Unity, Node…).
 3. Crea una sección por cada carpeta de dominio, es decir, cada carpeta de primer nivel que no sea una capa técnica (`templates`, `static`, `docs`…) ni una app de Django.
 
-La skill [`codemap-setup`](skills/codemap-setup/SKILL.md), que se lanza con `/codemap-setup`, hace que la IA
-renombre esas secciones con conceptos del negocio y añada descripciones. Después comprueba con `codemap sections`
+La skill [`nexus-setup`](skills/nexus-setup/SKILL.md), que se lanza con `/nexus-setup`, hace que la IA
+renombre esas secciones con conceptos del negocio y añada descripciones. Después comprueba con `nexus sections`
 que no queden archivos sin clasificar. Un ejemplo completo hecho a mano está en
 [`examples/neuroflex.config.json`](examples/neuroflex.config.json).
 
@@ -233,9 +240,9 @@ que no queden archivos sin clasificar. Un ejemplo completo hecho a mano está en
 ## Estructura
 
 ```
-codemap.py                # punto de entrada sin instalar (python codemap.py …)
-pyproject.toml            # paquete: crea el comando `codemap` con pip install -e
-codemap_core/
+nexus.py                  # punto de entrada sin instalar (python nexus.py …)
+pyproject.toml            # paquete: crea el comando `nexus` con pip install -e
+nexus_diff/
   cli.py                  # comandos
   projectinit.py          # init y sections: proponer y revisar secciones
   install.py              # instalación del comando, skills y plugin
@@ -251,7 +258,7 @@ codemap_core/
   model.py                # contrato de datos
   annotations.py          # anotaciones de la IA: guardar, fusionar, contrastar con el diff
   render.py, server.py, templates/report.html   # página local
-skills/                   # skills codemap-annotate y codemap-setup (fuente; las instala `install`)
+skills/                   # skills nexus-link y nexus-setup (fuente; las instala `install`)
 opencode/                 # plugin y comandos de opencode (fuente; los instala `install`)
 examples/                 # configuraciones de ejemplo
 tests/                    # unittest con repositorios git temporales
@@ -269,13 +276,13 @@ Los tests del plugin de opencode necesitan Node.js; sin él, se omiten.
 
 | Fase | Qué falta | Dónde se integra |
 |---|---|---|
-| 3. Contexto + LLM | **En parte resuelta con las anotaciones de la IA.** Falta `context.md` (glosario, nivel del lector) para que la skill escriba con los términos del negocio, y un LLM externo para los cambios que no hizo un agente. | `SKILL.md` puede leer `context.md`; un LLM externo usaría el mismo `annotate`. |
-| 4. Vigilancia de archivos + línea base | Guardar un commit o una copia del estado actual como "último revisado" y un botón **Marcar como revisado** que lo mueva. | `--base` ya acepta cualquier referencia; falta guardarla en `.git/codemap/` y un `POST` en `server.py`. |
+| 3. Contexto + LLM | **En parte resuelta con las anotaciones de la IA.** Falta `context.md` (glosario, nivel del lector) para que la skill escriba con los términos del negocio, y un LLM externo para los cambios que no hizo un agente. | `SKILL.md` puede leer `context.md`; un LLM externo usaría el mismo `link`. |
+| 4. Vigilancia de archivos + línea base | Guardar un commit o una copia del estado actual como "último revisado" y un botón **Marcar como revisado** que lo mueva. | `--base` ya acepta cualquier referencia; falta guardarla en `.git/nexus-diff/` y un `POST` en `server.py`. |
 | 5. Enganches | opencode, Cursor y nvim: abrir o actualizar la página cuando el agente termina. | Llamar a `serve` o a `/api/cambios`. |
-| 6. Cambios no declarados | **Hecha con `annotate` + skill, y exigida en opencode con el plugin.** Falta el equivalente en Claude Code (un hook del evento `Stop`, que se ejecuta al terminar cada respuesta) y en Cursor. | Reutilizan `scan --compact` y `annotate`. |
-| 7. Configuración interactiva | **Hecho para las secciones** (`codemap init` + `/codemap-setup`). Falta el `context.md` con el glosario y el nivel del lector. | La skill `codemap-setup` puede escribirlo junto a `codemap.config.json`. |
+| 6. Cambios no declarados | **Hecha con `link` + skill, y exigida en opencode con el plugin.** Falta el equivalente en Claude Code (un hook del evento `Stop`, que se ejecuta al terminar cada respuesta) y en Cursor. | Reutilizan `scan --compact` y `link`. |
+| 7. Configuración interactiva | **Hecho para las secciones** (`nexus init` + `/nexus-setup`). Falta el `context.md` con el glosario y el nivel del lector. | La skill `nexus-setup` puede escribirlo junto a `nexus-diff.config.json`. |
 
-Antes de pasar a la fase 3, conviene medir el tiempo que lleva revisar un cambio real con `git diff` y con Codemap.
+Antes de pasar a la fase 3, conviene medir el tiempo que lleva revisar un cambio real con `git diff` y con Nexus-diff.
 
 ## Limitaciones conocidas
 

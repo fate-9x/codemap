@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 TEMPLATE = Path(__file__).parent / "templates" / "report.html"
-PLACEHOLDER = "/*__CODEMAP_DATA__*/null"
+PLACEHOLDER = "/*__NEXUS_DIFF_DATA__*/null"
 
 
 def render_html(data: dict) -> str:
