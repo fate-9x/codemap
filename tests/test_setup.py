@@ -150,6 +150,14 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("link", proc.stdout)
 
+    def test_version_flag_prints_the_installed_version(self):
+        import nexus_diff
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as raised:
+            main(["--version"])
+        self.assertEqual(raised.exception.code, 0)
+        self.assertEqual(out.getvalue().strip(), f"nexus-diff {nexus_diff.__version__}")
+
     def test_version_matches_pyproject(self):
         try:
             import tomllib

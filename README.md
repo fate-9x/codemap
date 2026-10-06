@@ -135,6 +135,7 @@ nexus serve --open
 | `init [--print] [--force]` | Propone `nexus-diff.config.json`: detecta el stack y crea una sección por cada carpeta de dominio. |
 | `sections [--json]` | Muestra cómo quedan clasificados todos los archivos del repo y cuáles no encajan en ninguna sección. |
 | `install [--no-path] [--no-opencode]` | Instala o actualiza el comando, las skills y el plugin. También existen `install-skill [--dest] [--force]` e `install-opencode-plugin [--dest] [--force]` por separado. |
+| `--version` | Muestra la versión instalada de Nexus-diff y sale. |
 
 Opciones comunes:
 

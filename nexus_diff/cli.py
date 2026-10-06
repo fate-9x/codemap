@@ -9,7 +9,7 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from . import annotations, gitsource, install, projectinit
+from . import __version__, annotations, gitsource, install, projectinit
 from .analyze import analyze, build_matcher
 from .gitsource import GitError
 from .render import write_report
@@ -284,6 +284,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="nexus",
         description="Resume por secciones y en lenguaje natural lo que cambió en un repositorio git.",
     )
+    parser.add_argument("--version", action="version", version=f"nexus-diff {__version__}",
+                        help="mostrar la versión instalada y salir")
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--repo", default=".", help="carpeta del repositorio (por defecto, la actual)")
     common.add_argument("--base", default="HEAD", help="commit o rama contra la que comparar (por defecto HEAD)")
