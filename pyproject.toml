@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nexus-diff"
-version = "0.2.0"
+version = "0.2.0rc1"
 description = "Revisa en lenguaje natural lo que cambió en un repositorio git (y lo que la IA dice que hizo)."
 readme = "README.md"
 requires-python = ">=3.10"

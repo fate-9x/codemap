@@ -150,6 +150,16 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("link", proc.stdout)
 
+    def test_version_matches_pyproject(self):
+        try:
+            import tomllib
+        except ImportError:  # Python 3.10
+            self.skipTest("tomllib no está disponible")
+        import nexus_diff
+        pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        declared = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+        self.assertEqual(nexus_diff.__version__, declared)
+
     def test_package_data_declares_every_asset(self):
         try:
             import tomllib
