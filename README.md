@@ -15,12 +15,26 @@ deterministas; los escritos por la IA llegan con las [anotaciones](#anotaciones-
 - Opcional: **Claude Code** y/o **opencode**, para que la IA anote sus cambios y configure las secciones.
 - Opcional: **Node.js**, solo para ejecutar los tests del plugin de opencode.
 
-### Pasos
+### Con pip
+
+```bash
+pip install nexus-diff
+```
+```bash
+nexus install
+```
+
+`nexus install` copia las skills y, si opencode está instalado, su plugin y su comando (ver más abajo qué hace exactamente).
+El paquete trae esos archivos dentro, así que no hace falta clonar nada.
+
+### Desde el código fuente
+
+Para modificar Nexus-diff o probar una versión sin publicar:
 
 1. Clona el repositorio en una carpeta donde vaya a quedarse (la instalación queda enlazada a esa carpeta):
 
    ```bash
-   git clone https://github.com/USUARIO/nexus-diff.git
+   git clone https://github.com/fate-9x/nexus-diff.git
    ```
    ```bash
    cd nexus-diff
@@ -52,11 +66,19 @@ deterministas; los escritos por la IA llegan con las [anotaciones](#anotaciones-
 
 ### Actualizar
 
+Con pip:
+
+```bash
+pip install --upgrade nexus-diff
+```
+
+Desde el código fuente:
+
 ```bash
 git pull
 ```
 
-Los cambios en el código se aplican solos. Si cambiaron las skills o el plugin (que son copias), vuelve a
+En el código fuente los cambios se aplican solos. En ambos casos, si cambiaron las skills o el plugin (que son copias), vuelve a
 instalarlos:
 
 ```bash
@@ -65,17 +87,19 @@ nexus install
 
 ### Problemas frecuentes
 
-- **El sistema no reconoce `nexus`.** La carpeta de ejecutables de Python (`Scripts` en Windows, `bin` en Mac/Linux) no está en el PATH. Añádela al PATH; mientras tanto, `python nexus.py <comando>` funciona igual desde la carpeta clonada.
+- **El sistema no reconoce `nexus`.** La carpeta de ejecutables de Python (`Scripts` en Windows, `bin` en Mac/Linux) no está en el PATH. Añádela al PATH; mientras tanto, `python -m nexus_diff <comando>` funciona igual.
 - **pip responde `externally-managed-environment`.** Ocurre en algunas distribuciones de Linux y con el Python de Homebrew, que protegen el Python del sistema. Instala el comando con [pipx](https://pipx.pypa.io) y el resto con Nexus-diff:
 
   ```bash
-  pipx install -e .
+  pipx install nexus-diff
   ```
   ```bash
-  python3 nexus.py install --no-path
+  nexus install
   ```
 
-- **Moviste la carpeta después de instalar.** El comando, las skills y el plugin apuntan a la ruta anterior. Ejecuta de nuevo `python nexus.py install` desde la nueva ubicación.
+  (Desde el código fuente: `pipx install -e .` y después `python3 nexus.py install --no-path`.)
+
+- **Moviste la carpeta después de instalar** (solo si instalaste desde el código fuente). El comando, las skills y el plugin apuntan a la ruta anterior. Ejecuta de nuevo `python nexus.py install` desde la nueva ubicación.
 - **opencode pide permiso cada vez que la IA ejecuta `nexus`.** Elige "always" la primera vez, o añade la regla `"nexus *": allow` a los permisos de `bash` de tu agente.
 
 ### Desinstalar
@@ -155,7 +179,7 @@ Cada cambio tiene este formato (ver `nexus_diff/model.py`):
 ## Anotaciones de la IA
 
 El agente que hizo los cambios es quien mejor sabe *por qué* los hizo. La skill
-[`skills/nexus-link`](skills/nexus-link/SKILL.md), que se instala con `nexus install`, le indica
+[`nexus_diff/skills/nexus-link`](https://github.com/fate-9x/nexus-diff/blob/main/nexus_diff/skills/nexus-link/SKILL.md), que se instala con `nexus install`, le indica
 que, al terminar cada tarea, escriba un resumen en lenguaje natural de cada cambio que detectó Nexus-diff.
 
 Qué hace el agente:
@@ -192,9 +216,9 @@ Para otros agentes (por ejemplo, Cursor) sirven las mismas instrucciones de `SKI
 ### opencode: activación automática
 
 opencode encuentra las skills en `~/.claude/skills/` sin hacer nada más. Por sí sola, la skill depende de que el
-modelo se acuerde de usarla al terminar. El plugin [`opencode/nexus-diff.js`](opencode/nexus-diff.js), que instala
+modelo se acuerde de usarla al terminar. El plugin [`nexus_diff/opencode/nexus-diff.js`](https://github.com/fate-9x/nexus-diff/blob/main/nexus_diff/opencode/nexus-diff.js), que instala
 `nexus install`, lo exige. Queda en `~/.config/opencode/plugins/nexus-diff.js`, con rutas absolutas a este Python
-y a este `nexus.py`, y hay que reiniciar opencode para que lo cargue. Funciona así:
+y al lanzador `__main__.py` del paquete, y hay que reiniciar opencode para que lo cargue. Funciona así:
 
 1. Con el primer mensaje de una sesión guarda una foto de los cambios que ya existían. No reclama nada de lo que estaba antes.
 2. Cada vez que la sesión principal termina de responder (`session.idle`), ejecuta `scan`. Si la sesión dejó cambios sin anotar o con la anotación desactualizada, le envía al agente un mensaje `[Nexus-diff]` con la lista y le pide usar `nexus-link`. Esto incluye los cambios hechos con `bash` o por subagentes.
@@ -211,7 +235,7 @@ Notas de la prueba real con opencode 1.18:
 ## Secciones
 
 Se definen en `nexus-diff.config.json`, en la raíz de cada repo. Si no existe, se usa la configuración genérica
-[`nexus_diff/defaults/generic.json`](nexus_diff/defaults/generic.json). Para cada archivo se aplica la primera
+[`nexus_diff/defaults/generic.json`](https://github.com/fate-9x/nexus-diff/blob/main/nexus_diff/defaults/generic.json). Para cada archivo se aplica la primera
 sección cuyas reglas coinciden; los archivos que no coinciden con ninguna quedan en "Sin clasificar". Cada
 sección tiene `nombre`, `descripcion` y estas reglas:
 
@@ -224,10 +248,10 @@ sección tiene `nombre`, `descripcion` y estas reglas:
 2. Añade reglas según el stack que detecta (Django, Unity, Node…).
 3. Crea una sección por cada carpeta de dominio, es decir, cada carpeta de primer nivel que no sea una capa técnica (`templates`, `static`, `docs`…) ni una app de Django.
 
-La skill [`nexus-setup`](skills/nexus-setup/SKILL.md), que se lanza con `/nexus-setup`, hace que la IA
+La skill [`nexus-setup`](https://github.com/fate-9x/nexus-diff/blob/main/nexus_diff/skills/nexus-setup/SKILL.md), que se lanza con `/nexus-setup`, hace que la IA
 renombre esas secciones con conceptos del negocio y añada descripciones. Después comprueba con `nexus sections`
 que no queden archivos sin clasificar. Un ejemplo completo hecho a mano está en
-[`examples/neuroflex.config.json`](examples/neuroflex.config.json).
+[`examples/neuroflex.config.json`](https://github.com/fate-9x/nexus-diff/blob/main/examples/neuroflex.config.json).
 
 ## Decisiones de diseño
 
@@ -258,11 +282,16 @@ nexus_diff/
   model.py                # contrato de datos
   annotations.py          # anotaciones de la IA: guardar, fusionar, contrastar con el diff
   render.py, server.py, templates/report.html   # página local
-skills/                   # skills nexus-link y nexus-setup (fuente; las instala `install`)
-opencode/                 # plugin y comandos de opencode (fuente; los instala `install`)
+  skills/                 # skills nexus-link y nexus-setup (fuente; las instala `install`)
+  opencode/               # plugin y comandos de opencode (fuente; los instala `install`)
+  __main__.py             # python -m nexus_diff; también es el lanzador que usa el plugin de opencode
 examples/                 # configuraciones de ejemplo
 tests/                    # unittest con repositorios git temporales
 ```
+
+## Licencia
+
+Nexus-diff se distribuye bajo la **GNU General Public License v3.0** (solo la versión 3). El texto completo está en [`LICENSE`](https://github.com/fate-9x/nexus-diff/blob/main/LICENSE).
 
 ## Tests
 

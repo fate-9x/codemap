@@ -9,18 +9,24 @@ from pathlib import Path
 
 from .analyze import TOOL_DIR
 
-SKILLS_SOURCE = TOOL_DIR / "skills"
-OPENCODE_SOURCE = TOOL_DIR / "opencode"
-LAUNCHER = TOOL_DIR / "nexus.py"
+PACKAGE_DIR = Path(__file__).resolve().parent
+SKILLS_SOURCE = PACKAGE_DIR / "skills"      # viajan dentro del paquete: también existen al instalar desde PyPI
+OPENCODE_SOURCE = PACKAGE_DIR / "opencode"
+LAUNCHER = PACKAGE_DIR / "__main__.py"      # `python <esta ruta>` equivale a `nexus`
 CLAUDE_SKILLS = Path.home() / ".claude" / "skills"  # opencode también las lee de aquí
 OPENCODE_CONFIG = Path.home() / ".config" / "opencode"
+
+
+def is_source_checkout() -> bool:
+    """True si se ejecuta desde el repositorio clonado (y no desde un paquete instalado con pip)."""
+    return (TOOL_DIR / "pyproject.toml").is_file() and (TOOL_DIR / "nexus_diff").is_dir()
 
 
 def nexus_command() -> str:
     """Cómo invocar Nexus-diff desde una skill: `nexus` si está en el PATH."""
     if shutil.which("nexus"):
         return "nexus"
-    return f'python "{LAUNCHER.resolve().as_posix()}"'
+    return f'python "{LAUNCHER.as_posix()}"'
 
 
 def _write(dest: Path, text: str) -> None:
@@ -64,9 +70,9 @@ def install_opencode_plugin(dest: Path | None = None, force: bool = False) -> Pa
     dest = dest or OPENCODE_CONFIG / "plugins" / "nexus-diff.js"
     if dest.exists() and not force:
         return None
-    # El plugin corre dentro de opencode: rutas absolutas a este Python y a este nexus.py.
+    # El plugin corre dentro de opencode: rutas absolutas a este Python y al lanzador del paquete.
     text = (OPENCODE_SOURCE / "nexus-diff.js").read_text(encoding="utf-8")
-    text = text.replace("{{NEXUS}}", LAUNCHER.resolve().as_posix())
+    text = text.replace("{{NEXUS}}", LAUNCHER.as_posix())
     text = text.replace("{{PYTHON}}", Path(sys.executable).resolve().as_posix())
     _write(dest, text)
     return dest

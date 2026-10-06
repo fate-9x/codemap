@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,32 @@ version = "0.2.0"
 description = "Revisa en lenguaje natural lo que cambió en un repositorio git (y lo que la IA dice que hizo)."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "fate-9x" }]
+keywords = ["git", "diff", "code-review", "ai", "claude-code", "opencode", "annotations"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Natural Language :: Spanish",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Version Control :: Git",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/fate-9x/nexus-diff"
+Repository = "https://github.com/fate-9x/nexus-diff"
+Issues = "https://github.com/fate-9x/nexus-diff/issues"
 
 [project.scripts]
 nexus = "nexus_diff.cli:main"
@@ -17,4 +42,10 @@ nexus = "nexus_diff.cli:main"
 packages = ["nexus_diff"]
 
 [tool.setuptools.package-data]
-nexus_diff = ["templates/*.html", "defaults/*.json"]
+nexus_diff = [
+    "templates/*.html",
+    "defaults/*.json",
+    "skills/*/SKILL.md",
+    "opencode/*.js",
+    "opencode/commands/*.md",
+]

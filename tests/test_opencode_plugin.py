@@ -43,7 +43,7 @@ class OpencodePluginTests(unittest.TestCase):
     def test_install_fills_paths(self):
         text = self.plugin.read_text(encoding="utf-8")
         self.assertNotIn("{{", text)
-        self.assertIn("nexus.py", text)
+        self.assertIn("__main__.py", text)
 
     def test_nudges_once_for_changes_made_in_the_session(self):
         prompts = self.run_steps([

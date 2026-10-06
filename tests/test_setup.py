@@ -1,7 +1,10 @@
 import contextlib
+import fnmatch
 import io
 import json
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -134,6 +137,31 @@ class InstallTests(unittest.TestCase):
         commands = install.install_opencode_commands(self.work / "commands")
         self.assertEqual([p.name for p in commands], ["nexus-setup.md"])
         self.assertIn("nexus-setup", commands[0].read_text(encoding="utf-8"))
+
+    def test_assets_ship_inside_the_package(self):
+        # Lo que se instala (skills, plugin, comandos) debe viajar en el paquete, no solo en el repo clonado.
+        for source in (install.SKILLS_SOURCE, install.OPENCODE_SOURCE, install.LAUNCHER):
+            self.assertTrue(source.exists(), source)
+            self.assertIn(install.PACKAGE_DIR, source.parents)
+
+    def test_launcher_runs_as_a_script(self):
+        proc = subprocess.run([sys.executable, str(install.LAUNCHER), "--help"], capture_output=True, text=True,
+                              encoding="utf-8", cwd=self.work)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("link", proc.stdout)
+
+    def test_package_data_declares_every_asset(self):
+        try:
+            import tomllib
+        except ImportError:  # Python 3.10
+            self.skipTest("tomllib no está disponible")
+        pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        globs = tomllib.loads(pyproject.read_text(encoding="utf-8"))["tool"]["setuptools"]["package-data"]["nexus_diff"]
+        for folder in (install.SKILLS_SOURCE, install.OPENCODE_SOURCE):
+            for path in folder.rglob("*"):
+                if path.is_file() and "__pycache__" not in path.parts:
+                    rel = path.relative_to(install.PACKAGE_DIR).as_posix()
+                    self.assertTrue(any(fnmatch.fnmatch(rel, g) for g in globs), f"{rel} no está en package-data")
 
     def test_install_skill_cli(self):
         code, out = run_cli("install-skill", "--dest", str(self.work))

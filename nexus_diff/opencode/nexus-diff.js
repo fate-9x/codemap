@@ -12,8 +12,8 @@
  *   de cambios: evita bucles si el modelo no anota.
  * - NEXUS_DIFF_OPENCODE_DISABLE=1 lo desactiva.
  *
- * Fuente: tools/nexus-diff/opencode/nexus-diff.js. Se instala con
- * `python tools/nexus-diff/nexus.py install-opencode-plugin`, que rellena las rutas.
+ * Fuente: nexus_diff/opencode/nexus-diff.js. Se instala con `nexus install-opencode-plugin`
+ * (o `nexus install`), que rellena las rutas.
  */
 
 import { appendFileSync } from "node:fs";

@@ -243,11 +243,13 @@ def _report_skills(done: list[Path], skipped: list[Path]) -> None:
 
 def _cmd_install(args) -> int:
     ok = True
-    if not args.no_path:
+    if not args.no_path and install.is_source_checkout():
         print("Instalando el comando `nexus` (pip install -e)…")
         installed, detail = install.install_cli()
         ok &= installed
         print("  comando    nexus" if installed else f"  ✗ pip falló:\n{detail}")
+    elif not args.no_path:
+        print("El comando `nexus` ya está instalado con pip.")
     print(f"Las skills invocarán: {install.nexus_command()}")
     _report_skills(*install.install_skills(force=True))
     if args.no_opencode:
